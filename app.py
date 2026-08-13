@@ -1,90 +1,172 @@
 import streamlit as st
 from google import genai
+import pypdf
+import docx
+import pandas as pd
+from datetime import datetime
 
 # Page Configuration
-st.set_page_config(page_title="AI Exit Ticket", page_icon="🎓")
+st.set_page_config(page_title="AI Exit Ticket Portal", page_icon="🎓", layout="wide")
 
-st.title("🎓 Adaptive Lesson Exit Ticket")
-st.write("Complete today's exit ticket to check your understanding!")
+# Custom CSS for EdTech Aesthetics
+st.markdown("""
+    <style>
+    .main-title { font-size: 2.2rem; font-weight: 700; color: #1E3A8A; margin-bottom: 0.5rem; }
+    .sub-title { font-size: 1.1rem; color: #4B5563; margin-bottom: 2rem; }
+    .card { background-color: #F8FAFC; border: 1px solid #E2E8F0; padding: 1.5rem; border-radius: 0.75rem; margin-bottom: 1rem; }
+    .stButton>button { border-radius: 0.5rem; font-weight: 600; }
+    </style>
+""", unsafe_allow_html=True)
 
-# 1. Access & Clean Gemini API Key from Streamlit Secrets
+# 1. API Initialization
 if "GEMINI_API_KEY" in st.secrets:
     api_key = str(st.secrets["GEMINI_API_KEY"]).strip().strip('"').strip("'")
     client = genai.Client(api_key=api_key)
 else:
-    st.error("API Key not found. Please configure GEMINI_API_KEY in Streamlit Secrets.")
+    st.error("API Key missing in Streamlit Secrets.")
     st.stop()
 
-# Current Active Gemini Model
 MODEL_NAME = "gemini-3.6-flash"
 
-# 2. Teacher Setup Area (Sidebar)
-with st.sidebar:
-    st.header("👨‍🏫 Teacher Setup")
-    lesson_notes = st.text_area("Paste Today's Lesson Content / Notes:", height=200)
-    generate_btn = st.button("Generate Exit Ticket")
-
-# Session State to hold generated questions
+# Session State Initialization
 if "questions" not in st.session_state:
     st.session_state.questions = None
+if "lesson_title" not in st.session_state:
+    st.session_state.lesson_title = "General Lesson"
+if "student_results" not in st.session_state:
+    st.session_state.student_results = []
 
-# Generate Questions using Gemini
-if generate_btn and lesson_notes:
-    with st.spinner("Generating questions from lesson content..."):
-        try:
-            prompt = f"""
-            You are a high school teacher in Australia. Based on the following lesson notes, 
-            generate exactly 3 short-answer exit ticket questions to test student comprehension:
-            
-            Lesson Notes:
-            {lesson_notes}
-            
-            Format your response cleanly with Question 1, Question 2, and Question 3.
-            """
-            response = client.models.generate_content(
-                model=MODEL_NAME,
-                contents=prompt,
-            )
-            st.session_state.questions = response.text
-            st.success("Exit Ticket Created!")
-        except Exception as e:
-            st.error(f"Error generating questions: {e}")
+# Helper Function to Extract Text from Uploaded Files
+def extract_text(file):
+    text = ""
+    if file.name.endswith(".pdf"):
+        reader = pypdf.PdfReader(file)
+        for page in reader.pages:
+            text += page.extract_text() or ""
+    elif file.name.endswith(".docx"):
+        doc = docx.Document(file)
+        for para in doc.paragraphs:
+            text += para.text + "\n"
+    elif file.name.endswith(".txt"):
+        text = file.read().decode("utf-8")
+    return text
 
-# 3. Student View
-if st.session_state.questions:
-    st.subheader("Today's Questions")
-    st.write(st.session_state.questions)
+# Navigation Tabs
+tab_student, tab_teacher = st.tabs(["🎓 Student Portal", "👨‍🏫 Teacher Dashboard"])
+
+# ==========================================
+# TAB 1: STUDENT PORTAL
+# ==========================================
+with tab_student:
+    st.markdown("<div class='main-title'>🎓 Student Exit Ticket</div>", unsafe_allow_html=True)
     
-    student_id = st.text_input("Enter your Name or Student ID:")
-    ans1 = st.text_area("Answer to Question 1:")
-    ans2 = st.text_area("Answer to Question 2:")
-    ans3 = st.text_area("Answer to Question 3:")
+    if not st.session_state.questions:
+        st.info("👋 No active exit ticket available yet. Please wait for your teacher to publish today's lesson ticket!")
+    else:
+        st.markdown(f"### Current Topic: **{st.session_state.lesson_title}**")
+        
+        with st.container():
+            st.markdown("---")
+            st.markdown("#### **Today's Questions:**")
+            st.info(st.session_state.questions)
+            
+            with st.form("student_form"):
+                student_name = st.text_input("Enter Name / Student ID:")
+                a1 = st.text_area("Answer to Question 1:")
+                a2 = st.text_area("Answer to Question 2:")
+                a3 = st.text_area("Answer to Question 3:")
+                
+                submitted = st.form_submit_button("Submit Exit Ticket 🚀")
+                
+                if submitted:
+                    if student_name and a1 and a2 and a3:
+                        with st.spinner("AI Tutor is grading your responses..."):
+                            eval_prompt = f"""
+                            You are a supportive high school teacher. Evaluate these responses against the lesson questions.
+                            Questions: {st.session_state.questions}
+                            Student Answers: 1. {a1} | 2. {a2} | 3. {a3}
+                            
+                            Provide:
+                            1. Score out of 3.
+                            2. Encouraging feedback on what was correct.
+                            3. Specific advice on what to revise.
+                            """
+                            response = client.models.generate_content(model=MODEL_NAME, contents=eval_prompt)
+                            feedback_text = response.text
+                            
+                            # Store in class records
+                            st.session_state.student_results.append({
+                                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                                "Student ID": student_name,
+                                "Q1 Answer": a1,
+                                "Q2 Answer": a2,
+                                "Q3 Answer": a3,
+                                "Feedback": feedback_text
+                            })
+                            
+                            st.success("Ticket Submitted Successfully!")
+                            st.markdown("### 📝 Your Diagnostic Feedback:")
+                            st.write(feedback_text)
+                    else:
+                        st.warning("Please complete all fields before submitting.")
+
+# ==========================================
+# TAB 2: TEACHER DASHBOARD
+# ==========================================
+with tab_teacher:
+    st.markdown("<div class='main-title'>👨‍🏫 Teacher Management Studio</div>", unsafe_allow_html=True)
     
-    if st.button("Submit Answers"):
-        if student_id and ans1 and ans2 and ans3:
-            with st.spinner("Evaluating your responses..."):
-                try:
-                    eval_prompt = f"""
-                    You are a supportive high school tutor. Grade these student answers based on the original lesson content.
+    col_left, col_right = st.columns([1, 1])
+    
+    with col_left:
+        st.markdown("### 1️⃣ Publish Exit Ticket")
+        lesson_title = st.text_input("Lesson Title / Topic:", value="Water Cycle & Climate")
+        
+        uploaded_file = st.file_uploader("Upload Lesson Content (PDF, DOCX, TXT):", type=["pdf", "docx", "txt"])
+        raw_notes = st.text_area("...or Paste Lesson Notes/Outline directly:", height=150)
+        
+        if st.button("Generate & Publish to Class 📢"):
+            combined_text = ""
+            if uploaded_file:
+                combined_text += extract_text(uploaded_file)
+            if raw_notes:
+                combined_text += "\n" + raw_notes
+                
+            if combined_text.strip():
+                with st.spinner("Analyzing lesson content & creating ticket..."):
+                    gen_prompt = f"""
+                    You are an expert Australian High School Curriculum Designer.
+                    Based on these lesson materials, create 3 targeted short-answer questions to assess student understanding.
                     
-                    Lesson Content: {lesson_notes}
-                    Questions: {st.session_state.questions}
-                    Student Answers:
-                    1. {ans1}
-                    2. {ans2}
-                    3. {ans3}
-                    
-                    Provide:
-                    1. Brief feedback on what they got right.
-                    2. Friendly diagnostic advice on what concepts they need to revise before next lesson.
+                    Materials:
+                    {combined_text[:4000]}
                     """
-                    feedback = client.models.generate_content(
-                        model=MODEL_NAME,
-                        contents=eval_prompt,
-                    )
-                    st.subheader(f"Feedback for {student_id}")
-                    st.write(feedback.text)
-                except Exception as e:
-                    st.error(f"Error evaluating answers: {e}")
+                    ticket_res = client.models.generate_content(model=MODEL_NAME, contents=gen_prompt)
+                    st.session_state.questions = ticket_res.text
+                    st.session_state.lesson_title = lesson_title
+                    st.success("Exit Ticket Published! Students can now see it in the Student Portal tab.")
+            else:
+                st.error("Please upload a file or paste text content first.")
+                
+    with col_right:
+        st.markdown("### 2️⃣ Class Submissions & Analytics")
+        if st.session_state.student_results:
+            df = pd.DataFrame(st.session_state.student_results)
+            st.dataframe(df[["Timestamp", "Student ID", "Feedback"]], use_container_width=True)
+            
+            # Export CSV
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Download Results CSV", data=csv, file_name=f"exit_tickets_{datetime.now().strftime('%Y%m%d')}.csv", mime='text/csv')
+            
+            # AI Class Insights
+            if st.button("🧠 Generate Whole-Class Diagnostic Summary"):
+                with st.spinner("Analyzing class trends..."):
+                    class_summary_prompt = f"""
+                    Analyze these student submissions for common misconceptions and overall comprehension trends:
+                    {df.to_string()}
+                    """
+                    class_res = client.models.generate_content(model=MODEL_NAME, contents=class_summary_prompt)
+                    st.markdown("#### Class Insight Report:")
+                    st.write(class_res.text)
         else:
-            st.warning("Please fill in your ID and all three answers before submitting.")
+            st.info("No student submissions received for this session yet.")
