@@ -4,6 +4,7 @@ import pypdf
 import docx
 import pandas as pd
 import json
+import re
 from datetime import datetime
 
 # Page Configuration
@@ -150,26 +151,26 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
 .ios-badge-purple { background: rgba(175, 82, 222, 0.15); color: #AF52DE; }
 .ios-badge-orange { background: rgba(255, 149, 0, 0.15); color: #FF9500; }
 
-/* Custom Question Callout Box */
-.ios-question-box {
+/* Custom Individual Question Box */
+.ios-single-qbox {
     background: #F8F9FA;
     border-radius: 16px;
-    padding: 22px;
-    border-left: 5px solid #007AFF;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
-    margin-bottom: 24px;
-    font-size: 1.05rem;
-    line-height: 1.6;
+    padding: 18px 20px;
+    border-left: 4px solid #007AFF;
+    margin-bottom: 12px;
+    font-weight: 600;
+    font-size: 1rem;
     color: #1C1C1E;
 }
 
 /* Feedback Box */
 .ios-feedback-card {
-    background: rgba(52, 199, 89, 0.08);
+    background: #FFFFFF;
     border: 1px solid rgba(52, 199, 89, 0.3);
-    border-radius: 18px;
-    padding: 24px;
+    border-radius: 20px;
+    padding: 28px;
     margin-top: 24px;
+    box-shadow: 0 10px 30px rgba(52, 199, 89, 0.1);
 }
 
 /* Form Controls & Inputs */
@@ -230,7 +231,7 @@ MODEL_NAME = "gemini-3.6-flash"
 
 # Session State Initialization
 if "questions" not in st.session_state:
-    st.session_state.questions = None
+    st.session_state.questions = "1. Explain the process of evapotranspiration in your own words.\n2. How does the urban heat island effect impact localized weather conditions?\n3. Describe two primary environmental factors that drive atmospheric circulation."
 if "lesson_title" not in st.session_state:
     st.session_state.lesson_title = "Water Cycle & Climate Dynamics"
 if "student_results" not in st.session_state:
@@ -238,11 +239,31 @@ if "student_results" not in st.session_state:
 if "teacher_authenticated" not in st.session_state:
     st.session_state.teacher_authenticated = False
 if "ticket_library" not in st.session_state:
-    # Pre-populate with a sample saved ticket
     st.session_state.ticket_library = {
-        "Water Cycle & Climate Dynamics": "1. Explain the process of evapotranspiration.\n2. How does urban heat island effect impact local climate?\n3. Describe two primary drivers of global air circulation.",
-        "Photosynthesis Basics": "1. What is the chemical formula for photosynthesis?\n2. Role of chlorophyll in light absorption?\n3. How do stomata regulate gas exchange?"
+        "Water Cycle & Climate Dynamics": "1. Explain the process of evapotranspiration in your own words.\n2. How does the urban heat island effect impact localized weather conditions?\n3. Describe two primary environmental factors that drive atmospheric circulation.",
+        "Photosynthesis Basics": "1. What is the overall chemical equation for photosynthesis?\n2. What specific role does chlorophyll play in light absorption?\n3. How do plant stomata regulate gas exchange during high temperatures?"
     }
+
+# Helper: Parse AI raw questions string into list of individual questions
+def parse_questions(raw_text):
+    if not raw_text:
+        return []
+    lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
+    q_list = []
+    current_q = ""
+    for line in lines:
+        if re.match(r'^(\d+[\.\)]|Q\d+:?|Question\s*\d+:?)', line, re.IGNORECASE):
+            if current_q:
+                q_list.append(current_q)
+            current_q = line
+        else:
+            if current_q:
+                current_q += " " + line
+            else:
+                current_q = line
+    if current_q:
+        q_list.append(current_q)
+    return q_list if len(q_list) > 0 else [raw_text]
 
 # File Text Extraction Helper
 def extract_text(file):
@@ -292,7 +313,7 @@ with st.sidebar:
                 st.rerun()
 
 # ==========================================
-# VIEW 1: STUDENT PORTAL
+# VIEW 1: STUDENT PORTAL (ENHANCED WORKFLOW)
 # ==========================================
 if app_mode == "🎓 Student Portal":
     st.markdown(f"""
@@ -311,60 +332,92 @@ if app_mode == "🎓 Student Portal":
         </div>
         """, unsafe_allow_html=True)
     else:
-        st.markdown("<span class='ios-badge ios-badge-blue'>REQUIRED COMPREHENSION CHECK</span>", unsafe_allow_html=True)
+        questions_list = parse_questions(st.session_state.questions)
         
-        st.markdown(f"""
-        <div class="ios-question-box">
-            <strong style="color: #007AFF; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.5px;">Today's Assessment Questions</strong>
-            <div style="margin-top: 10px;">{st.session_state.questions.replace('\n', '<br>')}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        # Student Identity Bar
+        col_id, col_stat = st.columns([2, 1])
+        with col_id:
+            student_name = st.text_input("👤 Your Full Name or Student ID:", placeholder="e.g. Alex Smith")
+        with col_stat:
+            st.markdown(f"""
+            <div style="text-align: right; padding-top: 25px;">
+                <span class='ios-badge ios-badge-blue'>{len(questions_list)} Questions Total</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        st.markdown("---")
         
-        with st.form("student_form", clear_on_submit=False):
-            st.markdown("#### **Your Submissions**")
-            student_name = st.text_input("Student Name / ID:", placeholder="e.g. Alex Smith")
-            a1 = st.text_area("Answer to Question 1:", placeholder="Type your answer...", height=90)
-            a2 = st.text_area("Answer to Question 2:", placeholder="Type your answer...", height=90)
-            a3 = st.text_area("Answer to Question 3:", placeholder="Type your answer...", height=90)
+        # Form Container
+        with st.form("enhanced_student_form", clear_on_submit=False):
+            user_answers = []
+            
+            # Dynamically Render Each Question as an Individual Card
+            for idx, q_text in enumerate(questions_list):
+                st.markdown(f"""
+                <div class="ios-single-qbox">
+                    <span style="color: #007AFF; font-weight: 700; margin-right: 6px;">Q{idx+1}:</span> {q_text}
+                </div>
+                """, unsafe_allow_html=True)
+                
+                ans = st.text_area(
+                    f"Your Response to Q{idx+1}:", 
+                    placeholder=f"Write your explanation for Question {idx+1} here...", 
+                    height=100, 
+                    key=f"ans_{idx}",
+                    label_visibility="collapsed"
+                )
+                user_answers.append(ans)
+                st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
             
             submitted = st.form_submit_button("Submit Exit Ticket 🚀")
             
             if submitted:
-                if student_name and a1 and a2 and a3:
+                if not student_name.strip():
+                    st.error("⚠️ Please enter your Student Name/ID before submitting.")
+                elif any(not a.strip() for a in user_answers):
+                    st.warning("⚠️ Please answer all questions before submitting your ticket.")
+                else:
                     with st.spinner("✨ AI Tutor is evaluating your answers..."):
-                        eval_prompt = f"""
-                        You are a supportive high school teacher. Evaluate these responses against the lesson questions.
-                        Questions: {st.session_state.questions}
-                        Student Answers: 1. {a1} | 2. {a2} | 3. {a3}
+                        # Format answers for Gemini
+                        formatted_qa = "\n".join([f"Q{i+1}: {questions_list[i]}\nAnswer: {user_answers[i]}" for i in range(len(questions_list))])
                         
-                        Provide:
-                        1. Overall Score out of 3 (Format: Score: X/3).
-                        2. Encouraging diagnostic feedback on what was correct.
-                        3. Clear advice on key concepts to revise before next lesson.
+                        eval_prompt = f"""
+                        You are an encouraging high school AI teacher. Evaluate the student's exit ticket answers against the questions.
+                        
+                        QUESTIONS & ANSWERS:
+                        {formatted_qa}
+                        
+                        INSTRUCTIONS:
+                        Provide your feedback with clear sections:
+                        1. A score out of {len(questions_list)} (e.g. Score: 3/{len(questions_list)}).
+                        2. Key Highlights (What the student understood well).
+                        3. Learning Opportunities (Specific advice on what to review or improve).
                         """
                         response = client.models.generate_content(model=MODEL_NAME, contents=eval_prompt)
                         feedback_text = response.text
                         
-                        st.session_state.student_results.append({
+                        # Store Result
+                        res_dict = {
                             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
                             "Student ID": student_name,
-                            "Q1 Answer": a1,
-                            "Q2 Answer": a2,
-                            "Q3 Answer": a3,
                             "Feedback": feedback_text
-                        })
+                        }
+                        for i, a in enumerate(user_answers):
+                            res_dict[f"Q{i+1} Answer"] = a
+                            
+                        st.session_state.student_results.append(res_dict)
                         
+                        # Render Clean Evaluation View
                         st.markdown(f"""
                         <div class="ios-feedback-card">
-                            <span class="ios-badge ios-badge-green">EVALUATION COMPLETE</span>
-                            <h3 style="color: #28CD41; font-weight: 700; margin-top: 6px;">Diagnostic Feedback for {student_name}</h3>
-                            <div style="color: #1C1C1E; font-size: 1rem; line-height: 1.6; margin-top: 12px;">
+                            <span class="ios-badge ios-badge-green">SUBMISSION SUCCESSFUL</span>
+                            <h3 style="color: #28CD41; font-weight: 700; margin-top: 6px;">Evaluation Summary for {student_name}</h3>
+                            <hr style="border: none; border-top: 1px solid rgba(0,0,0,0.08); margin: 16px 0;">
+                            <div style="color: #1C1C1E; font-size: 0.98rem; line-height: 1.6;">
                                 {feedback_text.replace('\n', '<br>')}
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
-                else:
-                    st.warning("Please complete your name and all three answers before submitting.")
 
 # ==========================================
 # VIEW 2: TEACHER DASHBOARD
@@ -409,6 +462,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                         gen_prompt = f"""
                         You are an expert Australian High School Curriculum Designer.
                         Based on these lesson materials, create 3 targeted short-answer questions to assess student understanding.
+                        Format them strictly as numbered questions (1., 2., 3.).
                         
                         Materials:
                         {combined_text[:4000]}
@@ -417,6 +471,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                         st.session_state.questions = ticket_res.text
                         st.session_state.lesson_title = lesson_title
                         st.success("Exit Ticket Published! Students can now complete it on the Student Portal.")
+                        st.rerun()
                 else:
                     st.error("Please upload a file or paste syllabus text first.")
 
@@ -425,13 +480,11 @@ elif app_mode == "👨‍🏫 Teacher Studio":
             st.markdown("<span class='ios-badge ios-badge-orange'>TICKET LIBRARY & SAVED DRAFTS</span>", unsafe_allow_html=True)
             st.markdown("### 💾 Saved Ticket Manager")
             
-            # Save Current Ticket
             if st.session_state.questions:
                 if st.button("💾 Save Current Active Ticket to Library"):
                     st.session_state.ticket_library[st.session_state.lesson_title] = st.session_state.questions
                     st.success(f"Saved '{st.session_state.lesson_title}' to Library!")
             
-            # Load Saved Ticket
             if st.session_state.ticket_library:
                 selected_ticket = st.selectbox(
                     "Load saved ticket into active session:",
@@ -444,9 +497,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                     st.success(f"Loaded '{selected_ticket}' into active Student Portal!")
                     st.rerun()
 
-            # Backup/Restore via File JSON
             with st.expander("📤 Export / Import Library File"):
-                # Download JSON Backup
                 json_data = json.dumps(st.session_state.ticket_library, indent=2)
                 st.download_button(
                     label="📥 Export Library (.json)",
@@ -455,7 +506,6 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                     mime="application/json"
                 )
                 
-                # Upload JSON Backup
                 imported_file = st.file_uploader("Upload Ticket Library (.json):", type=["json"])
                 if imported_file:
                     try:
