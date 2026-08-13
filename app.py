@@ -37,26 +37,14 @@ header[data-testid="stHeader"] { background: transparent !important; }
 footer { visibility: hidden; }
 
 /* ==========================================
-   APPLE IPAD SIDEBAR / CONTROL CENTER OVERHAUL
+   APPLE IPAD SIDEBAR / CONTROL CENTER
    ========================================== */
 section[data-testid="stSidebar"] {
-    background-color: rgba(242, 242, 247, 0.7) !important;
-    backdrop-filter: blur(40px) saturate(200%) !important;
-    -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
+    background-color: rgba(242, 242, 247, 0.75) !important;
+    backdrop-filter: blur(40px) saturate(190%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(190%) !important;
     border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
     padding-top: 1rem !important;
-}
-
-/* Sidebar Custom Glass Card Container */
-.sidebar-glass-card {
-    background: rgba(255, 255, 255, 0.65);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: 16px;
-    padding: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
-    margin-bottom: 16px;
 }
 
 /* Custom iOS Segmented Control (Radio Button Styling) */
@@ -92,16 +80,6 @@ div[data-testid="stRadio"] input[type="radio"] {
     display: none !important;
 }
 
-/* iOS Main View Card Containers */
-.ios-card {
-    background: #FFFFFF;
-    border-radius: 20px;
-    padding: 28px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.02);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    margin-bottom: 24px;
-}
-
 /* Apple Hero Banners */
 .ios-hero-student {
     background: linear-gradient(135deg, #007AFF 0%, #0051A8 100%);
@@ -134,6 +112,15 @@ div[data-testid="stRadio"] input[type="radio"] {
     opacity: 0.92 !important;
     margin: 0 !important;
     font-weight: 400 !important;
+}
+
+/* iOS Section Card Styling */
+div[data-testid="stColumn"] > div, .ios-card-container {
+    background: #FFFFFF !important;
+    border-radius: 20px !important;
+    padding: 24px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
 
 /* iOS Pill Badges */
@@ -250,24 +237,21 @@ def extract_text(file):
     return text
 
 # ==========================================
-# SIDEBAR: IPAD CONTROL CENTER OVERHAUL
+# SIDEBAR: IPAD CONTROL CENTER
 # ==========================================
 with st.sidebar:
     st.markdown("""
-    <div style="padding: 6px 0 16px 0;">
-        <div style="font-size: 0.75rem; font-weight: 700; color: #8E8E93; letter-spacing: 0.8px; text-transform: uppercase;">System Control</div>
-        <div style="font-size: 1.4rem; font-weight: 700; color: #1C1C1E; letter-spacing: -0.3px; margin-top: 2px;">Control Center</div>
+    <div style="padding: 6px 0 12px 0;">
+        <div style="font-size: 0.72rem; font-weight: 700; color: #8E8E93; letter-spacing: 0.8px; text-transform: uppercase;">System Control</div>
+        <div style="font-size: 1.35rem; font-weight: 700; color: #1C1C1E; letter-spacing: -0.3px; margin-top: 2px;">Control Center</div>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<div class='sidebar-glass-card'>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size: 0.8rem; font-weight: 600; color: #8E8E93; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;'>Portal Mode</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size: 0.78rem; font-weight: 600; color: #8E8E93; margin: 12px 0 6px 0; text-transform: uppercase; letter-spacing: 0.5px;'>Portal Mode</div>", unsafe_allow_html=True)
     app_mode = st.radio("Select View:", ["🎓 Student Portal", "👨‍🏫 Teacher Studio"], label_visibility="collapsed")
-    st.markdown("</div>", unsafe_allow_html=True)
     
     if app_mode == "👨‍🏫 Teacher Studio":
-        st.markdown("<div class='sidebar-glass-card'>", unsafe_allow_html=True)
-        st.markdown("<span class='ios-badge ios-badge-purple' style='margin-bottom:8px;'>STUDIO ACCESS</span>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:20px;'><span class='ios-badge ios-badge-purple'>STUDIO ACCESS</span></div>", unsafe_allow_html=True)
         
         TEACHER_PIN = st.secrets.get("TEACHER_PIN", "1234")
         pin_input = st.text_input("Teacher Passcode:", type="password", placeholder="••••")
@@ -286,7 +270,6 @@ with st.sidebar:
                 if st.button("Lock 🔒"):
                     st.session_state.teacher_authenticated = False
                     st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
 # VIEW 1: STUDENT PORTAL
@@ -301,7 +284,7 @@ if app_mode == "🎓 Student Portal":
     
     if not st.session_state.questions:
         st.markdown("""
-        <div class="ios-card" style="text-align: center; padding: 48px 24px;">
+        <div class="ios-card-container" style="text-align: center; padding: 48px 24px;">
             <div style="font-size: 3rem; margin-bottom: 12px;">⏳</div>
             <h3 style="font-weight: 700; color: #1C1C1E; margin-bottom: 8px;">Waiting for Active Ticket</h3>
             <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Your teacher hasn't published an exit ticket for this session yet. Please check back shortly!</p>
@@ -376,7 +359,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
     
     if not st.session_state.teacher_authenticated:
         st.markdown("""
-        <div class="ios-card" style="text-align: center; padding: 48px 24px;">
+        <div class="ios-card-container" style="text-align: center; padding: 48px 24px;">
             <div style="font-size: 3rem; margin-bottom: 12px;">🔒</div>
             <h3 style="font-weight: 700; color: #1C1C1E; margin-bottom: 8px;">Dashboard Protected</h3>
             <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Please enter the Teacher Passcode in Control Center to unlock lesson authoring and live student records.</p>
@@ -386,7 +369,6 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         col_left, col_right = st.columns([1, 1], gap="large")
         
         with col_left:
-            st.markdown("<div class='ios-card'>", unsafe_allow_html=True)
             st.markdown("<span class='ios-badge ios-badge-blue'>CURRICULUM AUTHORING</span>", unsafe_allow_html=True)
             st.markdown("### 1️⃣ Publish Exit Ticket")
             
@@ -416,10 +398,8 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                         st.success("Exit Ticket Published! Students can now complete it on the Student Portal.")
                 else:
                     st.error("Please upload a file or paste syllabus text first.")
-            st.markdown("</div>", unsafe_allow_html=True)
             
         with col_right:
-            st.markdown("<div class='ios-card'>", unsafe_allow_html=True)
             st.markdown("<span class='ios-badge ios-badge-green'>CLASS ANALYTICS ROSTER</span>", unsafe_allow_html=True)
             st.markdown("### 2️⃣ Student Submissions")
             
@@ -443,4 +423,3 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                         st.markdown("</div>", unsafe_allow_html=True)
             else:
                 st.info("No student responses logged for this active session yet.")
-            st.markdown("</div>", unsafe_allow_html=True)
