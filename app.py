@@ -130,6 +130,7 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     padding: 24px !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
     border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    overflow: hidden !important;
 }
 
 /* iOS Pill Badges */
@@ -185,19 +186,23 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.18) !important;
 }
 
-/* iOS Action Buttons */
+/* iOS Responsive Action Buttons */
 .stButton>button {
     background: #007AFF !important;
     color: #FFFFFF !important;
     border-radius: 12px !important;
     border: none !important;
-    padding: 10px 16px !important;
+    padding: 12px 16px !important;
     font-size: 0.95rem !important;
     font-weight: 600 !important;
     box-shadow: 0 4px 14px rgba(0, 122, 255, 0.28) !important;
     transition: all 0.2s ease !important;
     width: 100% !important;
-    white-space: nowrap !important; /* Prevents awkward text wrapping */
+    white-space: normal !important; /* Allows natural wrapping on narrow iPad screens */
+    word-break: break-word !important;
+    line-height: 1.3 !important;
+    height: auto !important;
+    min-height: 44px !important; /* Apple recommended minimum touch target */
 }
 
 .stButton>button:hover {
@@ -266,7 +271,6 @@ with st.sidebar:
         TEACHER_PIN = st.secrets.get("TEACHER_PIN", "1234")
         pin_input = st.text_input("Teacher Passcode:", type="password", placeholder="••••")
         
-        # Clean Full-Width Toggle Action (No nested multi-column frames)
         if not st.session_state.teacher_authenticated:
             if st.button("Unlock Studio 🔓"):
                 if pin_input == TEACHER_PIN:
@@ -384,7 +388,8 @@ elif app_mode == "👨‍🏫 Teacher Studio":
             uploaded_file = st.file_uploader("Upload Lesson Content (PDF, DOCX, TXT):", type=["pdf", "docx", "txt"])
             raw_notes = st.text_area("Or Paste Syllabus Notes / Outline:", height=140, placeholder="Paste lesson objectives, key facts, or syllabus points...")
             
-            if st.button("Generate & Publish Exit Ticket 📢"):
+            # Shorter, responsive title to fit portrait columns seamlessly
+            if st.button("Publish Exit Ticket 📢"):
                 combined_text = ""
                 if uploaded_file:
                     combined_text += extract_text(uploaded_file)
