@@ -58,7 +58,7 @@ section[data-testid="stSidebar"] div[data-testid="stColumn"] > div {
     border: none !important;
 }
 
-/* Custom iOS Segmented Control (Radio Button Styling) */
+/* Custom iOS Segmented Control */
 div[data-testid="stRadio"] > div {
     background: rgba(120, 120, 128, 0.12) !important;
     border-radius: 12px !important;
@@ -78,7 +78,6 @@ div[data-testid="stRadio"] label {
     cursor: pointer !important;
 }
 
-/* Highlight Active Segment in iOS Radio Toggle */
 div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
     background: #FFFFFF !important;
     color: #000000 !important;
@@ -86,10 +85,7 @@ div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
     font-weight: 600 !important;
 }
 
-/* Hide raw radio circle indicators for pure Segmented Control feel */
-div[data-testid="stRadio"] input[type="radio"] {
-    display: none !important;
-}
+div[data-testid="stRadio"] input[type="radio"] { display: none !important; }
 
 /* Apple Hero Banners */
 .ios-hero-student {
@@ -150,8 +146,9 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
 .ios-badge-green { background: rgba(52, 199, 89, 0.15); color: #28CD41; }
 .ios-badge-purple { background: rgba(175, 82, 222, 0.15); color: #AF52DE; }
 .ios-badge-orange { background: rgba(255, 149, 0, 0.15); color: #FF9500; }
+.ios-badge-red { background: rgba(255, 59, 48, 0.15); color: #FF3B30; }
 
-/* Custom Individual Question Box */
+/* Custom Question Boxes */
 .ios-single-qbox {
     background: #F8F9FA;
     border-radius: 16px;
@@ -163,14 +160,25 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     color: #1C1C1E;
 }
 
-/* Feedback Box */
+.ios-mastery-qbox {
+    background: #FFF9F0;
+    border-radius: 16px;
+    padding: 18px 20px;
+    border-left: 4px solid #FF9500;
+    margin-bottom: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1C1C1E;
+}
+
+/* Feedback Card */
 .ios-feedback-card {
     background: #FFFFFF;
-    border: 1px solid rgba(52, 199, 89, 0.3);
+    border: 1px solid rgba(0, 122, 255, 0.2);
     border-radius: 20px;
     padding: 28px;
     margin-top: 24px;
-    box-shadow: 0 10px 30px rgba(52, 199, 89, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
 }
 
 /* Form Controls & Inputs */
@@ -189,7 +197,7 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.18) !important;
 }
 
-/* iOS Responsive Action Buttons */
+/* Buttons */
 .stButton>button, .stDownloadButton>button {
     background: #007AFF !important;
     color: #FFFFFF !important;
@@ -243,6 +251,11 @@ if "ticket_library" not in st.session_state:
         "Water Cycle & Climate Dynamics": "1. Explain the process of evapotranspiration in your own words.\n2. How does the urban heat island effect impact localized weather conditions?\n3. Describe two primary environmental factors that drive atmospheric circulation.",
         "Photosynthesis Basics": "1. What is the overall chemical equation for photosynthesis?\n2. What specific role does chlorophyll play in light absorption?\n3. How do plant stomata regulate gas exchange during high temperatures?"
     }
+
+# MASTERY LOOP REGISTRY: Tracks student misconceptions by Student ID
+# Structure: { "Student Name": [{"lesson": "Water Cycle", "misconception": "Confused transpiration with condensation", "resolved": False}] }
+if "student_misconceptions" not in st.session_state:
+    st.session_state.student_misconceptions = {}
 
 # Helper: Parse AI raw questions string into list of individual questions
 def parse_questions(raw_text):
@@ -313,7 +326,7 @@ with st.sidebar:
                 st.rerun()
 
 # ==========================================
-# VIEW 1: STUDENT PORTAL (ENHANCED WORKFLOW)
+# VIEW 1: STUDENT PORTAL (MASTERY LOOP INTEGRATED)
 # ==========================================
 if app_mode == "🎓 Student Portal":
     st.markdown(f"""
@@ -332,92 +345,181 @@ if app_mode == "🎓 Student Portal":
         </div>
         """, unsafe_allow_html=True)
     else:
-        questions_list = parse_questions(st.session_state.questions)
+        # Step 1: Student Identity Input
+        student_name = st.text_input("👤 Enter Your Name or Student ID to begin:", key="student_id_input", placeholder="e.g. Alex Smith")
+        clean_name = student_name.strip().title() if student_name else ""
         
-        # Student Identity Bar
-        col_id, col_stat = st.columns([2, 1])
-        with col_id:
-            student_name = st.text_input("👤 Your Full Name or Student ID:", placeholder="e.g. Alex Smith")
-        with col_stat:
+        if clean_name:
+            base_questions = parse_questions(st.session_state.questions)
+            mastery_question = None
+            
+            # Check for unresolved misconceptions from past tickets
+            unresolved_gaps = [
+                gap for gap in st.session_state.student_misconceptions.get(clean_name, [])
+                if not gap.get("resolved", False)
+            ]
+            
+            # Dynamically generate a Mastery Loop Question if previous errors exist
+            if unresolved_gaps:
+                last_gap = unresolved_gaps[-1]
+                st.markdown("<span class='ios-badge ios-badge-orange'>🔄 MASTERY LOOP ACTIVE</span>", unsafe_allow_html=True)
+                
+                # Generate custom follow-up question via Gemini based on past mistake
+                with st.spinner("🔄 Building your personalized revision question from last lesson..."):
+                    mastery_prompt = f"""
+                    A student named {clean_name} made an error in a previous lesson on topic '{last_gap['lesson']}'.
+                    Their identified misconception/error was: "{last_gap['misconception']}".
+                    
+                    Create 1 short review question that re-tests this specific concept in a clear, supportive way to see if they've mastered it now.
+                    Return ONLY the question text.
+                    """
+                    m_res = client.models.generate_content(model=MODEL_NAME, contents=mastery_prompt)
+                    mastery_question = m_res.text.strip()
+            
+            total_count = len(base_questions) + (1 if mastery_question else 0)
+            
             st.markdown(f"""
-            <div style="text-align: right; padding-top: 25px;">
-                <span class='ios-badge ios-badge-blue'>{len(questions_list)} Questions Total</span>
+            <div style="text-align: right; margin-bottom: 10px;">
+                <span class='ios-badge ios-badge-blue'>{total_count} Questions Assigned</span>
             </div>
             """, unsafe_allow_html=True)
             
-        st.markdown("---")
-        
-        # Form Container
-        with st.form("enhanced_student_form", clear_on_submit=False):
-            user_answers = []
-            
-            # Dynamically Render Each Question as an Individual Card
-            for idx, q_text in enumerate(questions_list):
-                st.markdown(f"""
-                <div class="ios-single-qbox">
-                    <span style="color: #007AFF; font-weight: 700; margin-right: 6px;">Q{idx+1}:</span> {q_text}
-                </div>
-                """, unsafe_allow_html=True)
+            # Form Container
+            with st.form("mastery_student_form", clear_on_submit=False):
+                user_answers = []
+                all_questions = []
                 
-                ans = st.text_area(
-                    f"Your Response to Q{idx+1}:", 
-                    placeholder=f"Write your explanation for Question {idx+1} here...", 
-                    height=100, 
-                    key=f"ans_{idx}",
-                    label_visibility="collapsed"
-                )
-                user_answers.append(ans)
-                st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-            
-            submitted = st.form_submit_button("Submit Exit Ticket 🚀")
-            
-            if submitted:
-                if not student_name.strip():
-                    st.error("⚠️ Please enter your Student Name/ID before submitting.")
-                elif any(not a.strip() for a in user_answers):
-                    st.warning("⚠️ Please answer all questions before submitting your ticket.")
-                else:
-                    with st.spinner("✨ AI Tutor is evaluating your answers..."):
-                        # Format answers for Gemini
-                        formatted_qa = "\n".join([f"Q{i+1}: {questions_list[i]}\nAnswer: {user_answers[i]}" for i in range(len(questions_list))])
-                        
-                        eval_prompt = f"""
-                        You are an encouraging high school AI teacher. Evaluate the student's exit ticket answers against the questions.
-                        
-                        QUESTIONS & ANSWERS:
-                        {formatted_qa}
-                        
-                        INSTRUCTIONS:
-                        Provide your feedback with clear sections:
-                        1. A score out of {len(questions_list)} (e.g. Score: 3/{len(questions_list)}).
-                        2. Key Highlights (What the student understood well).
-                        3. Learning Opportunities (Specific advice on what to review or improve).
-                        """
-                        response = client.models.generate_content(model=MODEL_NAME, contents=eval_prompt)
-                        feedback_text = response.text
-                        
-                        # Store Result
-                        res_dict = {
-                            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                            "Student ID": student_name,
-                            "Feedback": feedback_text
-                        }
-                        for i, a in enumerate(user_answers):
-                            res_dict[f"Q{i+1} Answer"] = a
+                # Render Mastery Loop Question First (if present)
+                if mastery_question:
+                    st.markdown(f"""
+                    <div class="ios-mastery-qbox">
+                        <span style="color: #FF9500; font-weight: 700;">🔄 Mastery Question (Revision):</span> {mastery_question}
+                    </div>
+                    """, unsafe_allow_html=True)
+                    m_ans = st.text_area("Your Revision Response:", placeholder="Answer your revision question here...", height=95, key="m_ans", label_visibility="collapsed")
+                    user_answers.append(m_ans)
+                    all_questions.append(f"[Mastery Question] {mastery_question}")
+                    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+                
+                # Render Today's Lesson Questions
+                for idx, q_text in enumerate(base_questions):
+                    st.markdown(f"""
+                    <div class="ios-single-qbox">
+                        <span style="color: #007AFF; font-weight: 700; margin-right: 6px;">Q{idx+1}:</span> {q_text}
+                    </div>
+                    """, unsafe_allow_html=True)
+                    ans = st.text_area(f"Your Response to Q{idx+1}:", placeholder=f"Write your response to Question {idx+1}...", height=95, key=f"ans_{idx}", label_visibility="collapsed")
+                    user_answers.append(ans)
+                    all_questions.append(q_text)
+                    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+                
+                submitted = st.form_submit_button("Submit Exit Ticket 🚀")
+                
+                if submitted:
+                    if any(not a.strip() for a in user_answers):
+                        st.warning("⚠️ Please provide answers to all questions before submitting.")
+                    else:
+                        with st.spinner("✨ Analyzing responses and crafting your targeted feedback..."):
+                            # Format Q&A payload
+                            qa_payload = ""
+                            for q, a in zip(all_questions, user_answers):
+                                qa_payload += f"Question: {q}\nStudent Answer: {a}\n---\n"
                             
-                        st.session_state.student_results.append(res_dict)
-                        
-                        # Render Clean Evaluation View
-                        st.markdown(f"""
-                        <div class="ios-feedback-card">
-                            <span class="ios-badge ios-badge-green">SUBMISSION SUCCESSFUL</span>
-                            <h3 style="color: #28CD41; font-weight: 700; margin-top: 6px;">Evaluation Summary for {student_name}</h3>
-                            <hr style="border: none; border-top: 1px solid rgba(0,0,0,0.08); margin: 16px 0;">
-                            <div style="color: #1C1C1E; font-size: 0.98rem; line-height: 1.6;">
-                                {feedback_text.replace('\n', '<br>')}
+                            # Refined Evaluation Prompt with Next-Lesson Guidance & Misconception Extraction
+                            eval_prompt = f"""
+                            You are a supportive, high-efficiency high school AI tutor.
+                            Evaluate this student's ({clean_name}) exit ticket submission.
+                            
+                            Topic: {st.session_state.lesson_title}
+                            Submission Data:
+                            {qa_payload}
+                            
+                            Respond in the following structured JSON format:
+                            {{
+                                "score": "X/{len(all_questions)}",
+                                "correct_aspects": "Encouraging summary of what they answered correctly.",
+                                "incorrect_aspects": "Clear breakdown of what was incorrect or missing in their answers.",
+                                "revision_topics": ["Specific concept 1 to review", "Specific concept 2 to review"],
+                                "teacher_clarification_question": "A single specific, well-formulated question the student should ask their teacher next lesson to resolve their confusion.",
+                                "has_misconception": true/false,
+                                "misconception_summary": "Short 1-sentence summary of their key error/misconception if any, or null if all correct."
+                            }}
+                            """
+                            
+                            response = client.models.generate_content(
+                                model=MODEL_NAME, 
+                                contents=eval_prompt,
+                                config={"response_mime_type": "application/json"}
+                            )
+                            
+                            try:
+                                result_json = json.loads(response.text)
+                            except:
+                                result_json = {
+                                    "score": f"?/{len(all_questions)}",
+                                    "correct_aspects": "Great effort completing the exit ticket!",
+                                    "incorrect_aspects": "Please review the lesson notes.",
+                                    "revision_topics": ["Core lesson concepts"],
+                                    "teacher_clarification_question": "Can you explain the main concept from today's lesson again?",
+                                    "has_misconception": False,
+                                    "misconception_summary": None
+                                }
+                            
+                            # Mastery Loop State Update
+                            if clean_name not in st.session_state.student_misconceptions:
+                                st.session_state.student_misconceptions[clean_name] = []
+                                
+                            # If they answered the mastery question correctly, mark past error as resolved
+                            if mastery_question and not result_json.get("has_misconception", False):
+                                for gap in st.session_state.student_misconceptions[clean_name]:
+                                    gap["resolved"] = True
+                            
+                            # If new misconception detected, log it for next lesson's ticket
+                            if result_json.get("has_misconception") and result_json.get("misconception_summary"):
+                                st.session_state.student_misconceptions[clean_name].append({
+                                    "lesson": st.session_state.lesson_title,
+                                    "misconception": result_json["misconception_summary"],
+                                    "resolved": False
+                                })
+                            
+                            # Log Result for Teacher
+                            res_entry = {
+                                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                                "Student ID": clean_name,
+                                "Score": result_json.get("score"),
+                                "Misconception Summary": result_json.get("misconception_summary", "None"),
+                                "Full Feedback": response.text
+                            }
+                            st.session_state.student_results.append(res_entry)
+                            
+                            # Render Refined Student Feedback UI
+                            st.markdown(f"""
+                            <div class="ios-feedback-card">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span class="ios-badge ios-badge-green">EVALUATION COMPLETE</span>
+                                    <span class="ios-badge ios-badge-blue">SCORE: {result_json.get('score')}</span>
+                                </div>
+                                
+                                <h3 style="color: #1C1C1E; font-weight: 700; margin-top: 8px;">Diagnostic Feedback for {clean_name}</h3>
+                                <hr style="border: none; border-top: 1px solid rgba(0,0,0,0.08); margin: 16px 0;">
+                                
+                                <p><strong style="color: #28CD41;">✅ What You Understood Well:</strong><br>{result_json.get('correct_aspects')}</p>
+                                
+                                <p><strong style="color: #FF3B30;">🔍 Areas needing Attention:</strong><br>{result_json.get('incorrect_aspects')}</p>
+                                
+                                <div style="background: #F2F2F7; padding: 16px; border-radius: 14px; margin: 16px 0;">
+                                    <strong style="color: #007AFF;">📖 What to Revise Before Next Lesson:</strong>
+                                    <ul style="margin: 8px 0 0 18px; padding: 0;">
+                                        {"".join([f"<li>{t}</li>" for t in result_json.get('revision_topics', [])])}
+                                    </ul>
+                                </div>
+                                
+                                <div style="background: rgba(255, 149, 0, 0.12); border-left: 4px solid #FF9500; padding: 16px; border-radius: 12px; margin-top: 16px;">
+                                    <strong style="color: #FF9500;">🙋 Question to Ask Your Teacher Next Lesson:</strong>
+                                    <p style="margin: 6px 0 0 0; font-weight: 600; color: #1C1C1E;">"{result_json.get('teacher_clarification_question')}"</p>
+                                </div>
                             </div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                            """, unsafe_allow_html=True)
 
 # ==========================================
 # VIEW 2: TEACHER DASHBOARD
@@ -515,7 +617,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                     except Exception as e:
                         st.error("Invalid JSON file structure.")
 
-        # --- RIGHT COLUMN: ANALYTICS ---
+        # --- RIGHT COLUMN: ANALYTICS & MASTERY REGISTRY ---
         with col_right:
             st.markdown("<span class='ios-badge ios-badge-green'>CLASS ANALYTICS ROSTER</span>", unsafe_allow_html=True)
             st.markdown("### 2️⃣ Student Submissions")
@@ -525,21 +627,31 @@ elif app_mode == "👨‍🏫 Teacher Studio":
             
             if st.session_state.student_results:
                 df = pd.DataFrame(st.session_state.student_results)
-                st.dataframe(df[["Timestamp", "Student ID", "Feedback"]], use_container_width=True, height=220)
+                st.dataframe(df[["Timestamp", "Student ID", "Score", "Misconception Summary"]], use_container_width=True, height=220)
                 
                 csv = df.to_csv(index=False).encode('utf-8')
                 st.download_button("📥 Export Results CSV", data=csv, file_name=f"exit_tickets_{datetime.now().strftime('%Y%m%d')}.csv", mime='text/csv')
-                
-                st.markdown("---")
-                if st.button("🧠 Generate Class Diagnostic Trends"):
-                    with st.spinner("Analyzing class-wide response data..."):
-                        class_summary_prompt = f"""
-                        Analyze these student submissions for common misconceptions and overall comprehension trends:
-                        {df.to_string()}
-                        """
-                        class_res = client.models.generate_content(model=MODEL_NAME, contents=class_summary_prompt)
-                        st.markdown("<div style='background:#F2F2F7; padding:18px; border-radius:14px; margin-top:14px;'>", unsafe_allow_html=True)
-                        st.write(class_res.text)
-                        st.markdown("</div>", unsafe_allow_html=True)
             else:
                 st.info("No student responses logged for this active session yet.")
+
+            # Mastery Loop Registry Inspection View
+            st.markdown("---")
+            st.markdown("<span class='ios-badge ios-badge-red'>🔄 MASTERY LOOP TRACKER</span>", unsafe_allow_html=True)
+            st.markdown("### Active Student Misconceptions")
+            
+            if st.session_state.student_misconceptions:
+                active_gaps = []
+                for student, gaps in st.session_state.student_misconceptions.items():
+                    for g in gaps:
+                        active_gaps.append({
+                            "Student Name": student,
+                            "Lesson": g["lesson"],
+                            "Identified Misconception": g["misconception"],
+                            "Status": "✅ Mastered" if g["resolved"] else "⚠️ Pending Review"
+                        })
+                if active_gaps:
+                    st.dataframe(pd.DataFrame(active_gaps), use_container_width=True, height=200)
+                else:
+                    st.success("No active misconceptions logged!")
+            else:
+                st.info("Mastery loop registry is empty. As students submit exit tickets, their weak areas will register here automatically.")
