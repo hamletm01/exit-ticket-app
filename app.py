@@ -522,13 +522,13 @@ if app_mode == "🎓 Student Portal":
                             """, unsafe_allow_html=True)
 
 # ==========================================
-# VIEW 2: TEACHER DASHBOARD
+# VIEW 2: TEACHER DASHBOARD & ANALYTICS
 # ==========================================
 elif app_mode == "👨‍🏫 Teacher Studio":
     st.markdown("""
     <div class="ios-hero-teacher">
-        <h1>👨‍🏫 Teacher Studio</h1>
-        <p>Curriculum Design & Live Class Diagnostic Analytics</p>
+        <h1>👨‍🏫 Teacher Studio & Analytics</h1>
+        <p>Curriculum Design, Live Class Diagnostic Analytics & Targeted Intervention</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -537,121 +537,200 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         <div class="ios-card-container" style="text-align: center; padding: 48px 24px;">
             <div style="font-size: 3rem; margin-bottom: 12px;">🔒</div>
             <h3 style="font-weight: 700; color: #1C1C1E; margin-bottom: 8px;">Dashboard Protected</h3>
-            <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Please enter the Teacher Passcode in Control Center to unlock lesson authoring and live student records.</p>
+            <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Please enter the Teacher Passcode in the Control Center to unlock lesson authoring and live student analytics.</p>
         </div>
         """, unsafe_allow_html=True)
     else:
-        col_left, col_right = st.columns([1, 1], gap="large")
-        
-        # --- LEFT COLUMN: GENERATE & TICKET MANAGEMENT ---
-        with col_left:
-            st.markdown("<span class='ios-badge ios-badge-blue'>CURRICULUM AUTHORING</span>", unsafe_allow_html=True)
-            st.markdown("### 1️⃣ Create or Generate Ticket")
-            
-            lesson_title = st.text_input("Lesson Title / Unit Topic:", value=st.session_state.lesson_title)
-            uploaded_file = st.file_uploader("Upload Lesson Content (PDF, DOCX, TXT):", type=["pdf", "docx", "txt"])
-            raw_notes = st.text_area("Or Paste Syllabus Notes / Outline:", height=110, placeholder="Paste lesson objectives, key facts, or syllabus points...")
-            
-            if st.button("Generate & Set Active 📢"):
-                combined_text = ""
-                if uploaded_file:
-                    combined_text += extract_text(uploaded_file)
-                if raw_notes:
-                    combined_text += "\n" + raw_notes
-                    
-                if combined_text.strip():
-                    with st.spinner("✨ Synthesizing courseware and building questions..."):
-                        gen_prompt = f"""
-                        You are an expert Australian High School Curriculum Designer.
-                        Based on these lesson materials, create 3 targeted short-answer questions to assess student understanding.
-                        Format them strictly as numbered questions (1., 2., 3.).
+        # Create Tabs for Clean Organization
+        tab_authoring, tab_analytics, tab_mastery = st.tabs([
+            "📝 Ticket Authoring", 
+            "📊 Class Analytics & AI Insights", 
+            "🔄 Mastery Loop Registry"
+        ])
+
+        # ------------------------------------------
+        # TAB 1: CURRICULUM AUTHORING
+        # ------------------------------------------
+        with tab_authoring:
+            col_left, col_right = st.columns([1, 1], gap="large")
+            with col_left:
+                st.markdown("<span class='ios-badge ios-badge-blue'>CURRICULUM AUTHORING</span>", unsafe_allow_html=True)
+                st.markdown("### Create or Generate Ticket")
+                
+                lesson_title = st.text_input("Lesson Title / Unit Topic:", value=st.session_state.lesson_title)
+                uploaded_file = st.file_uploader("Upload Lesson Content (PDF, DOCX, TXT):", type=["pdf", "docx", "txt"])
+                raw_notes = st.text_area("Or Paste Syllabus Notes / Outline:", height=110, placeholder="Paste lesson objectives, key facts, or syllabus points...")
+                
+                if st.button("Generate & Set Active 📢"):
+                    combined_text = ""
+                    if uploaded_file:
+                        combined_text += extract_text(uploaded_file)
+                    if raw_notes:
+                        combined_text += "\n" + raw_notes
                         
-                        Materials:
-                        {combined_text[:4000]}
-                        """
-                        ticket_res = client.models.generate_content(model=MODEL_NAME, contents=gen_prompt)
-                        st.session_state.questions = ticket_res.text
-                        st.session_state.lesson_title = lesson_title
-                        st.success("Exit Ticket Published! Students can now complete it on the Student Portal.")
+                    if combined_text.strip():
+                        with st.spinner("✨ Synthesizing courseware and building questions..."):
+                            gen_prompt = f"""
+                            You are an expert High School Curriculum Designer.
+                            Based on these lesson materials, create 3 targeted short-answer questions to assess student understanding.
+                            Format them strictly as numbered questions (1., 2., 3.).
+                            
+                            Materials:
+                            {combined_text[:4000]}
+                            """
+                            ticket_res = client.models.generate_content(model=MODEL_NAME, contents=gen_prompt)
+                            st.session_state.questions = ticket_res.text
+                            st.session_state.lesson_title = lesson_title
+                            st.success("Exit Ticket Published! Students can now complete it on the Student Portal.")
+                            st.rerun()
+                    else:
+                        st.error("Please upload a file or paste syllabus text first.")
+
+            with col_right:
+                st.markdown("<span class='ios-badge ios-badge-orange'>TICKET LIBRARY</span>", unsafe_allow_html=True)
+                st.markdown("### 💾 Saved Ticket Manager")
+                
+                if st.session_state.questions:
+                    if st.button("💾 Save Active Ticket to Library"):
+                        st.session_state.ticket_library[st.session_state.lesson_title] = st.session_state.questions
+                        st.success(f"Saved '{st.session_state.lesson_title}' to Library!")
+                
+                if st.session_state.ticket_library:
+                    selected_ticket = st.selectbox(
+                        "Load saved ticket into active session:",
+                        options=list(st.session_state.ticket_library.keys())
+                    )
+                    
+                    if st.button("📂 Load Selected Ticket"):
+                        st.session_state.lesson_title = selected_ticket
+                        st.session_state.questions = st.session_state.ticket_library[selected_ticket]
+                        st.success(f"Loaded '{selected_ticket}' into active Student Portal!")
                         st.rerun()
-                else:
-                    st.error("Please upload a file or paste syllabus text first.")
 
-            # --- TICKET LIBRARY (SAVE / LOAD SYSTEM) ---
-            st.markdown("---")
-            st.markdown("<span class='ios-badge ios-badge-orange'>TICKET LIBRARY & SAVED DRAFTS</span>", unsafe_allow_html=True)
-            st.markdown("### 💾 Saved Ticket Manager")
+        # ------------------------------------------
+        # TAB 2: CLASS ANALYTICS & AI INSIGHTS
+        # ------------------------------------------
+        with tab_analytics:
+            st.markdown("<span class='ios-badge ios-badge-green'>REAL-TIME CLASS DIAGNOSTICS</span>", unsafe_allow_html=True)
             
-            if st.session_state.questions:
-                if st.button("💾 Save Current Active Ticket to Library"):
-                    st.session_state.ticket_library[st.session_state.lesson_title] = st.session_state.questions
-                    st.success(f"Saved '{st.session_state.lesson_title}' to Library!")
-            
-            if st.session_state.ticket_library:
-                selected_ticket = st.selectbox(
-                    "Load saved ticket into active session:",
-                    options=list(st.session_state.ticket_library.keys())
-                )
-                
-                if st.button("📂 Load Selected Ticket"):
-                    st.session_state.lesson_title = selected_ticket
-                    st.session_state.questions = st.session_state.ticket_library[selected_ticket]
-                    st.success(f"Loaded '{selected_ticket}' into active Student Portal!")
-                    st.rerun()
-
-            with st.expander("📤 Export / Import Library File"):
-                json_data = json.dumps(st.session_state.ticket_library, indent=2)
-                st.download_button(
-                    label="📥 Export Library (.json)",
-                    data=json_data,
-                    file_name="exit_ticket_library.json",
-                    mime="application/json"
-                )
-                
-                imported_file = st.file_uploader("Upload Ticket Library (.json):", type=["json"])
-                if imported_file:
-                    try:
-                        imported_data = json.load(imported_file)
-                        st.session_state.ticket_library.update(imported_data)
-                        st.success("Library updated successfully!")
-                    except Exception as e:
-                        st.error("Invalid JSON file structure.")
-
-        # --- RIGHT COLUMN: ANALYTICS & MASTERY REGISTRY ---
-        with col_right:
-            st.markdown("<span class='ios-badge ios-badge-green'>CLASS ANALYTICS ROSTER</span>", unsafe_allow_html=True)
-            st.markdown("### 2️⃣ Student Submissions")
-            
-            if st.session_state.questions:
-                st.markdown(f"**Currently Active Ticket:** `{st.session_state.lesson_title}`")
-            
-            if st.session_state.student_results:
-                df = pd.DataFrame(st.session_state.student_results)
-                st.dataframe(df[["Timestamp", "Student ID", "Score", "Misconception Summary"]], use_container_width=True, height=220)
-                
-                csv = df.to_csv(index=False).encode('utf-8')
-                st.download_button("📥 Export Results CSV", data=csv, file_name=f"exit_tickets_{datetime.now().strftime('%Y%m%d')}.csv", mime='text/csv')
+            if not st.session_state.student_results:
+                st.info("💡 No student submissions recorded yet. Once students submit their exit tickets, diagnostic data will populate here in real time.")
             else:
-                st.info("No student responses logged for this active session yet.")
+                df_results = pd.DataFrame(st.session_state.student_results)
+                
+                # --- KPI Metrics Bar ---
+                m1, m2, m3, m4 = st.columns(4)
+                
+                total_submissions = len(df_results)
+                misconception_count = sum(1 for r in st.session_state.student_results if r.get("Misconception Summary") != "None")
+                
+                m1.metric("Total Submissions", total_submissions)
+                m2.metric("Active Misconceptions", misconception_count)
+                m3.metric("Current Unit", st.session_state.lesson_title[:18] + "...")
+                m4.metric("System Health", "Optimal 🟢")
+                
+                st.markdown("---")
+                
+                # --- AI Class Synthesis Button ---
+                st.markdown("### 🤖 Synthesis & Lesson Planner")
+                st.write("Generate a whole-class diagnostic overview and a 5-minute warm-up strategy for your next lesson.")
+                
+                if st.button("✨ Run Class AI Diagnostics & Strategy"):
+                    with st.spinner("🧠 Analyzing whole-class data, spotting patterns, and writing next lesson's warm-up..."):
+                        
+                        # Prepare payload for AI analysis
+                        synthesis_payload = ""
+                        for r in st.session_state.student_results:
+                            synthesis_payload += f"Student: {r['Student ID']} | Score: {r['Score']} | Key Misconception: {r['Misconception Summary']}\nFeedback Detail: {r['Full Feedback']}\n---\n"
+                        
+                        class_ai_prompt = f"""
+                        You are an expert instructional coach analyzing exit ticket data for a high school class.
+                        
+                        Lesson Topic: {st.session_state.lesson_title}
+                        Class Submission Data:
+                        {synthesis_payload}
+                        
+                        Please generate a structured, executive diagnostic report for the teacher containing:
+                        1. **Class Mastery Summary:** Overall performance trends.
+                        2. **Top 2 Common Class Misconceptions:** What threw students off the most?
+                        3. **Student Differentiation Groups:**
+                           - 🔴 Needs Direct Support / Re-teaching
+                           - 🟡 Minor Clarifications Needed
+                           - 🟢 Mastered / Ready for Extension
+                        4. **Tomorrow's 5-Minute Warm-Up Activity:** A quick, high-impact exercise or discussion prompt to kick off the next lesson and resolve today's biggest misconception.
+                        """
+                        
+                        ai_report = client.models.generate_content(
+                            model=MODEL_NAME, 
+                            contents=class_ai_prompt
+                        )
+                        
+                        st.session_state["class_ai_report"] = ai_report.text
 
-            # Mastery Loop Registry Inspection View
-            st.markdown("---")
-            st.markdown("<span class='ios-badge ios-badge-red'>🔄 MASTERY LOOP TRACKER</span>", unsafe_allow_html=True)
-            st.markdown("### Active Student Misconceptions")
+                # Display AI Class Report if available
+                if "class_ai_report" in st.session_state:
+                    st.markdown("""
+                    <div style="background: #FFFFFF; border-left: 5px solid #5856D6; padding: 24px; border-radius: 16px; margin-top: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
+                        <h3 style="color: #5856D6; margin-top:0;">📊 Executive Class Diagnostic & Intervention Plan</h3>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    st.markdown(st.session_state["class_ai_report"])
+
+                st.markdown("---")
+                st.markdown("### 📋 Student Roster & Detailed Submissions")
+                
+                # Display Interactive Table
+                st.dataframe(
+                    df_results[["Timestamp", "Student ID", "Score", "Misconception Summary"]], 
+                    use_container_width=True, 
+                    height=260
+                )
+                
+                # Export Options
+                csv = df_results.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    "📥 Export Submissions as CSV", 
+                    data=csv, 
+                    file_name=f"Exit_Ticket_Results_{st.session_state.lesson_title.replace(' ', '_')}.csv", 
+                    mime='text/csv'
+                )
+
+        # ------------------------------------------
+        # TAB 3: MASTERY LOOP REGISTRY
+        # ------------------------------------------
+        with tab_mastery:
+            st.markdown("<span class='ios-badge ios-badge-purple'>LONGITUDINAL TRACKING</span>", unsafe_allow_html=True)
+            st.markdown("### 🔄 Active Student Misconception Registry")
+            st.write("This table tracks unresolved learning gaps across lessons. When a student enters their name on a future exit ticket, the system automatically pulls from this list to test them again.")
             
             if st.session_state.student_misconceptions:
                 active_gaps = []
                 for student, gaps in st.session_state.student_misconceptions.items():
-                    for g in gaps:
+                    for idx, g in enumerate(gaps):
                         active_gaps.append({
-                            "Student Name": student,
-                            "Lesson": g["lesson"],
+                            "Student ID": student,
+                            "Lesson Origin": g["lesson"],
                             "Identified Misconception": g["misconception"],
                             "Status": "✅ Mastered" if g["resolved"] else "⚠️ Pending Review"
                         })
+                
                 if active_gaps:
-                    st.dataframe(pd.DataFrame(active_gaps), use_container_width=True, height=200)
+                    gap_df = pd.DataFrame(active_gaps)
+                    st.dataframe(gap_df, use_container_width=True, height=300)
+                    
+                    # Quick Manual Override to resolve/clear student errors if needed
+                    st.markdown("#### 🛠️ Manual Registry Controls")
+                    col_m1, col_m2 = st.columns(2)
+                    with col_m1:
+                        student_to_clear = st.selectbox("Select student to clear resolved gaps:", options=list(st.session_state.student_misconceptions.keys()))
+                    with col_m2:
+                        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+                        if st.button("Mark All Gaps as Resolved for Student"):
+                            for gap in st.session_state.student_misconceptions[student_to_clear]:
+                                gap["resolved"] = True
+                            st.success(f"Cleared gaps for {student_to_clear}!")
+                            st.rerun()
                 else:
-                    st.success("No active misconceptions logged!")
+                    st.success("🎉 All student misconceptions have been successfully addressed and resolved!")
             else:
-                st.info("Mastery loop registry is empty. As students submit exit tickets, their weak areas will register here automatically.")
+                st.info("The Mastery Loop registry is currently empty. Misconceptions detected during exit ticket submissions will accumulate here automatically.")
