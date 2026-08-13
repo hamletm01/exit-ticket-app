@@ -7,26 +7,51 @@ st.set_page_config(page_title="AI Exit Ticket", page_icon="🎓")
 st.title("🎓 Adaptive Lesson Exit Ticket")
 st.write("Complete today's exit ticket to check your understanding!")
 
-# 1. Access Gemini API Key from Streamlit Secrets
+# 1. Access & Clean Gemini API Key from Streamlit Secrets
 if "GEMINI_API_KEY" in st.secrets:
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    # Clean whitespace or extra quotes from copy-pasting
+    api_key = str(st.secrets["GEMINI_API_KEY"]).strip().strip('"').strip("'")
+    genai.configure(api_key=api_key)
 else:
     st.error("API Key not found. Please configure GEMINI_API_KEY in Streamlit Secrets.")
     st.stop()
 
-# Initialize Gemini Model with Fallback Protection
+# Auto-discover a working model available to your API key
 @st.cache_resource
-def get_model():
-    # Primary model name
-    for model_name in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest"]:
+def get_working_model():
+    # List of preferred model identifiers
+    candidates = [
+        "gemini-2.5-flash",
+        "gemini-1.5-flash",
+        "gemini-2.0-flash",
+        "models/gemini-2.5-flash",
+        "models/gemini-1.5-flash"
+    ]
+    for m_name in candidates:
         try:
-            m = genai.GenerativeModel(model_name)
+            m = genai.GenerativeModel(m_name)
+            # Quick ping to verify the model exists for this key
+            m.generate_content("Ping", request_options={"timeout": 5})
             return m
         except Exception:
             continue
+
+    # Fallback: Dynamically search all models available on your key
+    try:
+        for m_info in genai.list_models():
+            if "generateContent" in m_info.supported_generation_methods:
+                return genai.GenerativeModel(m_info.name)
+    except Exception as e:
+        st.error(f"API Key connection error: {e}")
+        
     return genai.GenerativeModel("gemini-2.5-flash")
 
-model = get_model()
+# Initialize Model
+try:
+    model = get_working_model()
+except Exception as err:
+    st.error(f"Could not initialize model: {err}")
+    st.stop()
 
 # 2. Teacher Setup Area (Sidebar)
 with st.sidebar:
