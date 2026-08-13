@@ -14,8 +14,19 @@ else:
     st.error("API Key not found. Please configure GEMINI_API_KEY in Streamlit Secrets.")
     st.stop()
 
-# Initialize Gemini Model
-model = genai.GenerativeModel("gemini-1.5-flash")
+# Initialize Gemini Model with Fallback Protection
+@st.cache_resource
+def get_model():
+    # Primary model name
+    for model_name in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest"]:
+        try:
+            m = genai.GenerativeModel(model_name)
+            return m
+        except Exception:
+            continue
+    return genai.GenerativeModel("gemini-2.5-flash")
+
+model = get_model()
 
 # 2. Teacher Setup Area (Sidebar)
 with st.sidebar:
