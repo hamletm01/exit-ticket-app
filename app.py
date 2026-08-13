@@ -15,6 +15,9 @@ else:
     st.error("API Key not found. Please configure GEMINI_API_KEY in Streamlit Secrets.")
     st.stop()
 
+# Current Active Gemini Model
+MODEL_NAME = "gemini-3.6-flash"
+
 # 2. Teacher Setup Area (Sidebar)
 with st.sidebar:
     st.header("👨‍🏫 Teacher Setup")
@@ -39,7 +42,7 @@ if generate_btn and lesson_notes:
             Format your response cleanly with Question 1, Question 2, and Question 3.
             """
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=MODEL_NAME,
                 contents=prompt,
             )
             st.session_state.questions = response.text
@@ -76,7 +79,7 @@ if st.session_state.questions:
                     2. Friendly diagnostic advice on what concepts they need to revise before next lesson.
                     """
                     feedback = client.models.generate_content(
-                        model="gemini-2.5-flash",
+                        model=MODEL_NAME,
                         contents=eval_prompt,
                     )
                     st.subheader(f"Feedback for {student_id}")
