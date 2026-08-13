@@ -23,7 +23,7 @@ st.markdown("""
 
 /* Global Reset to Apple Typography Stack */
 html, body, [class*="css"] {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", "Helvetica Neue", sans-serif !apple-system;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", "Helvetica Neue", sans-serif !important;
     background-color: #F2F2F7 !important;
     color: #1C1C1E;
 }
@@ -36,15 +36,63 @@ html, body, [class*="css"] {
 header[data-testid="stHeader"] { background: transparent !important; }
 footer { visibility: hidden; }
 
-/* Apple iPad Sidebar Styling */
+/* ==========================================
+   APPLE IPAD SIDEBAR / CONTROL CENTER OVERHAUL
+   ========================================== */
 section[data-testid="stSidebar"] {
-    background-color: rgba(255, 255, 255, 0.8) !important;
-    backdrop-filter: blur(30px) saturate(190%);
-    -webkit-backdrop-filter: blur(30px) saturate(190%);
+    background-color: rgba(242, 242, 247, 0.7) !important;
+    backdrop-filter: blur(40px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
     border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+    padding-top: 1rem !important;
 }
 
-/* iOS Card Containers */
+/* Sidebar Custom Glass Card Container */
+.sidebar-glass-card {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 16px;
+    padding: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    margin-bottom: 16px;
+}
+
+/* Custom iOS Segmented Control (Radio Button Styling) */
+div[data-testid="stRadio"] > div {
+    background: rgba(120, 120, 128, 0.12) !important;
+    border-radius: 12px !important;
+    padding: 4px !important;
+    border: none !important;
+    gap: 4px !important;
+}
+
+div[data-testid="stRadio"] label {
+    background: transparent !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    font-weight: 500 !important;
+    font-size: 0.9rem !important;
+    color: #1C1C1E !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    cursor: pointer !important;
+}
+
+/* Highlight Active Segment in iOS Radio Toggle */
+div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+    font-weight: 600 !important;
+}
+
+/* Hide raw radio circle indicators for pure Segmented Control feel */
+div[data-testid="stRadio"] input[type="radio"] {
+    display: none !important;
+}
+
+/* iOS Main View Card Containers */
 .ios-card {
     background: #FFFFFF;
     border-radius: 20px;
@@ -54,7 +102,7 @@ section[data-testid="stSidebar"] {
     margin-bottom: 24px;
 }
 
-/* Apple Hero Banner Header */
+/* Apple Hero Banners */
 .ios-hero-student {
     background: linear-gradient(135deg, #007AFF 0%, #0051A8 100%);
     border-radius: 22px;
@@ -202,21 +250,29 @@ def extract_text(file):
     return text
 
 # ==========================================
-# SIDEBAR: IPAD CONTROL CENTER
+# SIDEBAR: IPAD CONTROL CENTER OVERHAUL
 # ==========================================
 with st.sidebar:
-    st.markdown("<h2 style='font-size: 1.3rem; font-weight:700; color:#1C1C1E; margin-bottom: 12px;'>⚙️ Control Center</h2>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style="padding: 6px 0 16px 0;">
+        <div style="font-size: 0.75rem; font-weight: 700; color: #8E8E93; letter-spacing: 0.8px; text-transform: uppercase;">System Control</div>
+        <div style="font-size: 1.4rem; font-weight: 700; color: #1C1C1E; letter-spacing: -0.3px; margin-top: 2px;">Control Center</div>
+    </div>
+    """, unsafe_allow_html=True)
     
-    app_mode = st.radio("Select View:", ["🎓 Student Portal", "👨‍🏫 Teacher Dashboard"])
+    st.markdown("<div class='sidebar-glass-card'>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size: 0.8rem; font-weight: 600; color: #8E8E93; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;'>Portal Mode</div>", unsafe_allow_html=True)
+    app_mode = st.radio("Select View:", ["🎓 Student Portal", "👨‍🏫 Teacher Studio"], label_visibility="collapsed")
+    st.markdown("</div>", unsafe_allow_html=True)
     
-    if app_mode == "👨‍🏫 Teacher Dashboard":
-        st.markdown("<hr style='margin: 20px 0; border: none; border-top: 1px solid rgba(0,0,0,0.08);'>", unsafe_allow_html=True)
-        st.markdown("<span class='ios-badge ios-badge-purple'>TEACHER AUTHENTICATION</span>", unsafe_allow_html=True)
+    if app_mode == "👨‍🏫 Teacher Studio":
+        st.markdown("<div class='sidebar-glass-card'>", unsafe_allow_html=True)
+        st.markdown("<span class='ios-badge ios-badge-purple' style='margin-bottom:8px;'>STUDIO ACCESS</span>", unsafe_allow_html=True)
         
         TEACHER_PIN = st.secrets.get("TEACHER_PIN", "1234")
-        pin_input = st.text_input("Enter Teacher PIN:", type="password", placeholder="••••")
+        pin_input = st.text_input("Teacher Passcode:", type="password", placeholder="••••")
         
-        col_auth1, col_auth2 = st.columns([1, 1])
+        col_auth1, col_auth2 = st.columns([1, 1], gap="small")
         with col_auth1:
             if st.button("Unlock"):
                 if pin_input == TEACHER_PIN:
@@ -230,9 +286,10 @@ with st.sidebar:
                 if st.button("Lock 🔒"):
                     st.session_state.teacher_authenticated = False
                     st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
-# VIEW 1: STUDENT PORTAL (iPad Interface)
+# VIEW 1: STUDENT PORTAL
 # ==========================================
 if app_mode == "🎓 Student Portal":
     st.markdown(f"""
@@ -271,7 +328,7 @@ if app_mode == "🎓 Student Portal":
             
             if submitted:
                 if student_name and a1 and a2 and a3:
-                    with st.spinner("✨ Apple AI Assistant is evaluating your answers..."):
+                    with st.spinner("✨ AI Tutor is evaluating your answers..."):
                         eval_prompt = f"""
                         You are a supportive high school teacher. Evaluate these responses against the lesson questions.
                         Questions: {st.session_state.questions}
@@ -285,7 +342,6 @@ if app_mode == "🎓 Student Portal":
                         response = client.models.generate_content(model=MODEL_NAME, contents=eval_prompt)
                         feedback_text = response.text
                         
-                        # Store in class records
                         st.session_state.student_results.append({
                             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
                             "Student ID": student_name,
@@ -308,9 +364,9 @@ if app_mode == "🎓 Student Portal":
                     st.warning("Please complete your name and all three answers before submitting.")
 
 # ==========================================
-# VIEW 2: TEACHER DASHBOARD (iPad Interface)
+# VIEW 2: TEACHER DASHBOARD
 # ==========================================
-elif app_mode == "👨‍🏫 Teacher Dashboard":
+elif app_mode == "👨‍🏫 Teacher Studio":
     st.markdown("""
     <div class="ios-hero-teacher">
         <h1>👨‍🏫 Teacher Studio</h1>
@@ -323,7 +379,7 @@ elif app_mode == "👨‍🏫 Teacher Dashboard":
         <div class="ios-card" style="text-align: center; padding: 48px 24px;">
             <div style="font-size: 3rem; margin-bottom: 12px;">🔒</div>
             <h3 style="font-weight: 700; color: #1C1C1E; margin-bottom: 8px;">Dashboard Protected</h3>
-            <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Please enter the Teacher PIN in the sidebar on the left to unlock lesson authoring and live student records.</p>
+            <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Please enter the Teacher Passcode in Control Center to unlock lesson authoring and live student records.</p>
         </div>
         """, unsafe_allow_html=True)
     else:
@@ -346,7 +402,7 @@ elif app_mode == "👨‍🏫 Teacher Dashboard":
                     combined_text += "\n" + raw_notes
                     
                 if combined_text.strip():
-                    with st.spinner("✨ Apple AI is synthesizing courseware and building questions..."):
+                    with st.spinner("✨ Synthesizing courseware and building questions..."):
                         gen_prompt = f"""
                         You are an expert Australian High School Curriculum Designer.
                         Based on these lesson materials, create 3 targeted short-answer questions to assess student understanding.
@@ -371,7 +427,6 @@ elif app_mode == "👨‍🏫 Teacher Dashboard":
                 df = pd.DataFrame(st.session_state.student_results)
                 st.dataframe(df[["Timestamp", "Student ID", "Feedback"]], use_container_width=True, height=220)
                 
-                # Export CSV
                 csv = df.to_csv(index=False).encode('utf-8')
                 st.download_button("📥 Export Results CSV", data=csv, file_name=f"exit_tickets_{datetime.now().strftime('%Y%m%d')}.csv", mime='text/csv')
                 
