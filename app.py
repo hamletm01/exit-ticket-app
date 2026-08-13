@@ -47,6 +47,15 @@ section[data-testid="stSidebar"] {
     padding-top: 1rem !important;
 }
 
+/* Prevent Sidebar Columns from rendering white card frames */
+section[data-testid="stSidebar"] div[data-testid="stColumn"] > div {
+    background: transparent !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
 /* Custom iOS Segmented Control (Radio Button Styling) */
 div[data-testid="stRadio"] > div {
     background: rgba(120, 120, 128, 0.12) !important;
@@ -114,8 +123,8 @@ div[data-testid="stRadio"] input[type="radio"] {
     font-weight: 400 !important;
 }
 
-/* iOS Section Card Styling */
-div[data-testid="stColumn"] > div, .ios-card-container {
+/* iOS Main Content Section Card Styling */
+section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-container {
     background: #FFFFFF !important;
     border-radius: 20px !important;
     padding: 24px !important;
@@ -165,8 +174,8 @@ div[data-testid="stColumn"] > div, .ios-card-container {
     background-color: #F2F2F7 !important;
     border: 1px solid rgba(0, 0, 0, 0.08) !important;
     border-radius: 12px !important;
-    padding: 12px 16px !important;
-    font-size: 0.98rem !important;
+    padding: 10px 14px !important;
+    font-size: 0.95rem !important;
     color: #1C1C1E !important;
 }
 
@@ -176,18 +185,19 @@ div[data-testid="stColumn"] > div, .ios-card-container {
     box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.18) !important;
 }
 
-/* Action Buttons */
+/* iOS Action Buttons */
 .stButton>button {
     background: #007AFF !important;
     color: #FFFFFF !important;
     border-radius: 12px !important;
     border: none !important;
-    padding: 12px 24px !important;
-    font-size: 0.98rem !important;
+    padding: 10px 16px !important;
+    font-size: 0.95rem !important;
     font-weight: 600 !important;
     box-shadow: 0 4px 14px rgba(0, 122, 255, 0.28) !important;
     transition: all 0.2s ease !important;
     width: 100% !important;
+    white-space: nowrap !important; /* Prevents awkward text wrapping */
 }
 
 .stButton>button:hover {
@@ -256,20 +266,18 @@ with st.sidebar:
         TEACHER_PIN = st.secrets.get("TEACHER_PIN", "1234")
         pin_input = st.text_input("Teacher Passcode:", type="password", placeholder="••••")
         
-        col_auth1, col_auth2 = st.columns([1, 1], gap="small")
-        with col_auth1:
-            if st.button("Unlock"):
+        # Clean Full-Width Toggle Action (No nested multi-column frames)
+        if not st.session_state.teacher_authenticated:
+            if st.button("Unlock Studio 🔓"):
                 if pin_input == TEACHER_PIN:
                     st.session_state.teacher_authenticated = True
-                    st.success("Unlocked")
-                else:
-                    st.session_state.teacher_authenticated = False
-                    st.error("Invalid PIN")
-        with col_auth2:
-            if st.session_state.teacher_authenticated:
-                if st.button("Lock 🔒"):
-                    st.session_state.teacher_authenticated = False
                     st.rerun()
+                else:
+                    st.error("Invalid Passcode")
+        else:
+            if st.button("Lock Studio 🔒"):
+                st.session_state.teacher_authenticated = False
+                st.rerun()
 
 # ==========================================
 # VIEW 1: STUDENT PORTAL
