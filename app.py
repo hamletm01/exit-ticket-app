@@ -3,6 +3,7 @@ from google import genai
 import pypdf
 import docx
 import pandas as pd
+import json
 from datetime import datetime
 
 # Page Configuration
@@ -147,6 +148,7 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
 .ios-badge-blue { background: rgba(0, 122, 255, 0.12); color: #007AFF; }
 .ios-badge-green { background: rgba(52, 199, 89, 0.15); color: #28CD41; }
 .ios-badge-purple { background: rgba(175, 82, 222, 0.15); color: #AF52DE; }
+.ios-badge-orange { background: rgba(255, 149, 0, 0.15); color: #FF9500; }
 
 /* Custom Question Callout Box */
 .ios-question-box {
@@ -171,7 +173,7 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
 }
 
 /* Form Controls & Inputs */
-.stTextInput>div>div>input, .stTextArea>div>div>textarea {
+.stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div {
     background-color: #F2F2F7 !important;
     border: 1px solid rgba(0, 0, 0, 0.08) !important;
     border-radius: 12px !important;
@@ -187,7 +189,7 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
 }
 
 /* iOS Responsive Action Buttons */
-.stButton>button {
+.stButton>button, .stDownloadButton>button {
     background: #007AFF !important;
     color: #FFFFFF !important;
     border-radius: 12px !important;
@@ -198,19 +200,19 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     box-shadow: 0 4px 14px rgba(0, 122, 255, 0.28) !important;
     transition: all 0.2s ease !important;
     width: 100% !important;
-    white-space: normal !important; /* Allows natural wrapping on narrow iPad screens */
+    white-space: normal !important;
     word-break: break-word !important;
     line-height: 1.3 !important;
     height: auto !important;
-    min-height: 44px !important; /* Apple recommended minimum touch target */
+    min-height: 44px !important;
 }
 
-.stButton>button:hover {
+.stButton>button:hover, .stDownloadButton>button:hover {
     background: #0062D6 !important;
     transform: translateY(-1px) !important;
 }
 
-.stButton>button:active {
+.stButton>button:active, .stDownloadButton>button:active {
     transform: scale(0.98) !important;
 }
 </style>
@@ -235,6 +237,12 @@ if "student_results" not in st.session_state:
     st.session_state.student_results = []
 if "teacher_authenticated" not in st.session_state:
     st.session_state.teacher_authenticated = False
+if "ticket_library" not in st.session_state:
+    # Pre-populate with a sample saved ticket
+    st.session_state.ticket_library = {
+        "Water Cycle & Climate Dynamics": "1. Explain the process of evapotranspiration.\n2. How does urban heat island effect impact local climate?\n3. Describe two primary drivers of global air circulation.",
+        "Photosynthesis Basics": "1. What is the chemical formula for photosynthesis?\n2. Role of chlorophyll in light absorption?\n3. How do stomata regulate gas exchange?"
+    }
 
 # File Text Extraction Helper
 def extract_text(file):
@@ -380,16 +388,16 @@ elif app_mode == "👨‍🏫 Teacher Studio":
     else:
         col_left, col_right = st.columns([1, 1], gap="large")
         
+        # --- LEFT COLUMN: GENERATE & TICKET MANAGEMENT ---
         with col_left:
             st.markdown("<span class='ios-badge ios-badge-blue'>CURRICULUM AUTHORING</span>", unsafe_allow_html=True)
-            st.markdown("### 1️⃣ Publish Exit Ticket")
+            st.markdown("### 1️⃣ Create or Generate Ticket")
             
             lesson_title = st.text_input("Lesson Title / Unit Topic:", value=st.session_state.lesson_title)
             uploaded_file = st.file_uploader("Upload Lesson Content (PDF, DOCX, TXT):", type=["pdf", "docx", "txt"])
-            raw_notes = st.text_area("Or Paste Syllabus Notes / Outline:", height=140, placeholder="Paste lesson objectives, key facts, or syllabus points...")
+            raw_notes = st.text_area("Or Paste Syllabus Notes / Outline:", height=110, placeholder="Paste lesson objectives, key facts, or syllabus points...")
             
-            # Shorter, responsive title to fit portrait columns seamlessly
-            if st.button("Publish Exit Ticket 📢"):
+            if st.button("Generate & Set Active 📢"):
                 combined_text = ""
                 if uploaded_file:
                     combined_text += extract_text(uploaded_file)
@@ -411,10 +419,59 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                         st.success("Exit Ticket Published! Students can now complete it on the Student Portal.")
                 else:
                     st.error("Please upload a file or paste syllabus text first.")
+
+            # --- TICKET LIBRARY (SAVE / LOAD SYSTEM) ---
+            st.markdown("---")
+            st.markdown("<span class='ios-badge ios-badge-orange'>TICKET LIBRARY & SAVED DRAFTS</span>", unsafe_allow_html=True)
+            st.markdown("### 💾 Saved Ticket Manager")
             
+            # Save Current Ticket
+            if st.session_state.questions:
+                if st.button("💾 Save Current Active Ticket to Library"):
+                    st.session_state.ticket_library[st.session_state.lesson_title] = st.session_state.questions
+                    st.success(f"Saved '{st.session_state.lesson_title}' to Library!")
+            
+            # Load Saved Ticket
+            if st.session_state.ticket_library:
+                selected_ticket = st.selectbox(
+                    "Load saved ticket into active session:",
+                    options=list(st.session_state.ticket_library.keys())
+                )
+                
+                if st.button("📂 Load Selected Ticket"):
+                    st.session_state.lesson_title = selected_ticket
+                    st.session_state.questions = st.session_state.ticket_library[selected_ticket]
+                    st.success(f"Loaded '{selected_ticket}' into active Student Portal!")
+                    st.rerun()
+
+            # Backup/Restore via File JSON
+            with st.expander("📤 Export / Import Library File"):
+                # Download JSON Backup
+                json_data = json.dumps(st.session_state.ticket_library, indent=2)
+                st.download_button(
+                    label="📥 Export Library (.json)",
+                    data=json_data,
+                    file_name="exit_ticket_library.json",
+                    mime="application/json"
+                )
+                
+                # Upload JSON Backup
+                imported_file = st.file_uploader("Upload Ticket Library (.json):", type=["json"])
+                if imported_file:
+                    try:
+                        imported_data = json.load(imported_file)
+                        st.session_state.ticket_library.update(imported_data)
+                        st.success("Library updated successfully!")
+                    except Exception as e:
+                        st.error("Invalid JSON file structure.")
+
+        # --- RIGHT COLUMN: ANALYTICS ---
         with col_right:
             st.markdown("<span class='ios-badge ios-badge-green'>CLASS ANALYTICS ROSTER</span>", unsafe_allow_html=True)
             st.markdown("### 2️⃣ Student Submissions")
+            
+            if st.session_state.questions:
+                st.markdown(f"**Currently Active Ticket:** `{st.session_state.lesson_title}`")
             
             if st.session_state.student_results:
                 df = pd.DataFrame(st.session_state.student_results)
