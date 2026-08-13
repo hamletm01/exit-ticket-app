@@ -224,10 +224,10 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
 .stButton>button:active, .stDownloadButton>button:active {
     transform: scale(0.98) !important;
 }
+
 /* ==========================================
    APPLE IPAD NATIVE TABS (SEGMENTED CONTROL)
    ========================================== */
-/* Container holding the tab buttons */
 div[data-testid="stTabs"] > div[role="tablist"] {
     background-color: rgba(118, 118, 128, 0.12) !important;
     border-radius: 14px !important;
@@ -237,7 +237,6 @@ div[data-testid="stTabs"] > div[role="tablist"] {
     margin-bottom: 24px !important;
 }
 
-/* Base Tab Button Styling */
 div[data-testid="stTabs"] button[role="tab"] {
     background-color: transparent !important;
     border-radius: 10px !important;
@@ -250,12 +249,10 @@ div[data-testid="stTabs"] button[role="tab"] {
     min-height: 40px !important;
 }
 
-/* Hover State */
 div[data-testid="stTabs"] button[role="tab"]:hover {
     background-color: rgba(255, 255, 255, 0.5) !important;
 }
 
-/* Active Tab Highlight (Apple Card Style) */
 div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
     background-color: #FFFFFF !important;
     color: #007AFF !important;
@@ -263,7 +260,6 @@ div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* Remove default Streamlit bottom red bar indicator */
 div[data-testid="stTabs"] button[role="tab"] > div[data-testid="stMarkdownContainer"] {
     border-bottom: none !important;
 }
@@ -298,12 +294,10 @@ if "ticket_library" not in st.session_state:
         "Photosynthesis Basics": "1. What is the overall chemical equation for photosynthesis?\n2. What specific role does chlorophyll play in light absorption?\n3. How do plant stomata regulate gas exchange during high temperatures?"
     }
 
-# MASTERY LOOP REGISTRY: Tracks student misconceptions by Student ID
-# Structure: { "Student Name": [{"lesson": "Water Cycle", "misconception": "Confused transpiration with condensation", "resolved": False}] }
 if "student_misconceptions" not in st.session_state:
     st.session_state.student_misconceptions = {}
 
-# Helper: Parse AI raw questions string into list of individual questions
+# Helper Functions
 def parse_questions(raw_text):
     if not raw_text:
         return []
@@ -324,7 +318,6 @@ def parse_questions(raw_text):
         q_list.append(current_q)
     return q_list if len(q_list) > 0 else [raw_text]
 
-# File Text Extraction Helper
 def extract_text(file):
     text = ""
     if file.name.endswith(".pdf"):
@@ -372,7 +365,7 @@ with st.sidebar:
                 st.rerun()
 
 # ==========================================
-# VIEW 1: STUDENT PORTAL (MASTERY LOOP INTEGRATED)
+# VIEW 1: STUDENT PORTAL
 # ==========================================
 if app_mode == "🎓 Student Portal":
     st.markdown(f"""
@@ -391,7 +384,6 @@ if app_mode == "🎓 Student Portal":
         </div>
         """, unsafe_allow_html=True)
     else:
-        # Step 1: Student Identity Input
         student_name = st.text_input("👤 Enter Your Name or Student ID to begin:", key="student_id_input", placeholder="e.g. Alex Smith")
         clean_name = student_name.strip().title() if student_name else ""
         
@@ -399,18 +391,15 @@ if app_mode == "🎓 Student Portal":
             base_questions = parse_questions(st.session_state.questions)
             mastery_question = None
             
-            # Check for unresolved misconceptions from past tickets
             unresolved_gaps = [
                 gap for gap in st.session_state.student_misconceptions.get(clean_name, [])
                 if not gap.get("resolved", False)
             ]
             
-            # Dynamically generate a Mastery Loop Question if previous errors exist
             if unresolved_gaps:
                 last_gap = unresolved_gaps[-1]
                 st.markdown("<span class='ios-badge ios-badge-orange'>🔄 MASTERY LOOP ACTIVE</span>", unsafe_allow_html=True)
                 
-                # Generate custom follow-up question via Gemini based on past mistake
                 with st.spinner("🔄 Building your personalized revision question from last lesson..."):
                     mastery_prompt = f"""
                     A student named {clean_name} made an error in a previous lesson on topic '{last_gap['lesson']}'.
@@ -430,12 +419,10 @@ if app_mode == "🎓 Student Portal":
             </div>
             """, unsafe_allow_html=True)
             
-            # Form Container
             with st.form("mastery_student_form", clear_on_submit=False):
                 user_answers = []
                 all_questions = []
                 
-                # Render Mastery Loop Question First (if present)
                 if mastery_question:
                     st.markdown(f"""
                     <div class="ios-mastery-qbox">
@@ -447,7 +434,6 @@ if app_mode == "🎓 Student Portal":
                     all_questions.append(f"[Mastery Question] {mastery_question}")
                     st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
                 
-                # Render Today's Lesson Questions
                 for idx, q_text in enumerate(base_questions):
                     st.markdown(f"""
                     <div class="ios-single-qbox">
@@ -466,12 +452,10 @@ if app_mode == "🎓 Student Portal":
                         st.warning("⚠️ Please provide answers to all questions before submitting.")
                     else:
                         with st.spinner("✨ Analyzing responses and crafting your targeted feedback..."):
-                            # Format Q&A payload
                             qa_payload = ""
                             for q, a in zip(all_questions, user_answers):
                                 qa_payload += f"Question: {q}\nStudent Answer: {a}\n---\n"
                             
-                            # Refined Evaluation Prompt with Next-Lesson Guidance & Misconception Extraction
                             eval_prompt = f"""
                             You are a supportive, high-efficiency high school AI tutor.
                             Evaluate this student's ({clean_name}) exit ticket submission.
@@ -511,16 +495,13 @@ if app_mode == "🎓 Student Portal":
                                     "misconception_summary": None
                                 }
                             
-                            # Mastery Loop State Update
                             if clean_name not in st.session_state.student_misconceptions:
                                 st.session_state.student_misconceptions[clean_name] = []
                                 
-                            # If they answered the mastery question correctly, mark past error as resolved
                             if mastery_question and not result_json.get("has_misconception", False):
                                 for gap in st.session_state.student_misconceptions[clean_name]:
                                     gap["resolved"] = True
                             
-                            # If new misconception detected, log it for next lesson's ticket
                             if result_json.get("has_misconception") and result_json.get("misconception_summary"):
                                 st.session_state.student_misconceptions[clean_name].append({
                                     "lesson": st.session_state.lesson_title,
@@ -528,7 +509,6 @@ if app_mode == "🎓 Student Portal":
                                     "resolved": False
                                 })
                             
-                            # Log Result for Teacher
                             res_entry = {
                                 "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
                                 "Student ID": clean_name,
@@ -538,7 +518,6 @@ if app_mode == "🎓 Student Portal":
                             }
                             st.session_state.student_results.append(res_entry)
                             
-                            # Render Refined Student Feedback UI
                             st.markdown(f"""
                             <div class="ios-feedback-card">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -587,7 +566,6 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         </div>
         """, unsafe_allow_html=True)
     else:
-        # Create Tabs for Clean Organization
         tab_authoring, tab_analytics, tab_mastery = st.tabs([
             "📝 Ticket Authoring", 
             "📊 Class Analytics & AI Insights", 
@@ -664,9 +642,8 @@ elif app_mode == "👨‍🏫 Teacher Studio":
             else:
                 df_results = pd.DataFrame(st.session_state.student_results)
                 
-                # --- KPI Metrics Bar ---
+                # Metrics Bar
                 m1, m2, m3, m4 = st.columns(4)
-                
                 total_submissions = len(df_results)
                 misconception_count = sum(1 for r in st.session_state.student_results if r.get("Misconception Summary") != "None")
                 
@@ -677,106 +654,39 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                 
                 st.markdown("---")
                 
-                # --- AI Class Synthesis Button ---
-                st.markdown("### 🤖 Synthesis & Lesson Planner")
-                st.write("Generate a whole-class diagnostic overview and a 5-minute warm-up strategy for your next lesson.")
-                
-                if st.button("✨ Run Class AI Diagnostics & Strategy"):
-                    with st.spinner("🧠 Analyzing whole-class data, spotting patterns, and writing next lesson's warm-up..."):
+                # Class Synthesis Generator
+                st.markdown("### 🤖 Class-Wide AI Synthesis")
+                if st.button("Generate Class Analysis & Intervention Plan 💡"):
+                    with st.spinner("Analyzing whole-class trends..."):
+                        synthesis_prompt = f"""
+                        You are an expert instructional coach. Review these exit ticket results for the lesson "{st.session_state.lesson_title}":
                         
-                        # Prepare payload for AI analysis
-                        synthesis_payload = ""
-                        for r in st.session_state.student_results:
-                            synthesis_payload += f"Student: {r['Student ID']} | Score: {r['Score']} | Key Misconception: {r['Misconception Summary']}\nFeedback Detail: {r['Full Feedback']}\n---\n"
+                        Data:
+                        {json.dumps(st.session_state.student_results)}
                         
-                        class_ai_prompt = f"""
-                        You are an expert instructional coach analyzing exit ticket data for a high school class.
-                        
-                        Lesson Topic: {st.session_state.lesson_title}
-                        Class Submission Data:
-                        {synthesis_payload}
-                        
-                        Please generate a structured, executive diagnostic report for the teacher containing:
-                        1. **Class Mastery Summary:** Overall performance trends.
-                        2. **Top 2 Common Class Misconceptions:** What threw students off the most?
-                        3. **Student Differentiation Groups:**
-                           - 🔴 Needs Direct Support / Re-teaching
-                           - 🟡 Minor Clarifications Needed
-                           - 🟢 Mastered / Ready for Extension
-                        4. **Tomorrow's 5-Minute Warm-Up Activity:** A quick, high-impact exercise or discussion prompt to kick off the next lesson and resolve today's biggest misconception.
+                        Provide a clear synthesis:
+                        1. Major overall trends across all students.
+                        2. Key recurring misconceptions identified.
+                        3. Suggested mini-lesson or warm-up activity for the start of next class.
                         """
-                        
-                        ai_report = client.models.generate_content(
-                            model=MODEL_NAME, 
-                            contents=class_ai_prompt
-                        )
-                        
-                        st.session_state["class_ai_report"] = ai_report.text
+                        synth_res = client.models.generate_content(model=MODEL_NAME, contents=synthesis_prompt)
+                        st.write(synth_res.text)
 
-                # Display AI Class Report if available
-                if "class_ai_report" in st.session_state:
-                    st.markdown("""
-                    <div style="background: #FFFFFF; border-left: 5px solid #5856D6; padding: 24px; border-radius: 16px; margin-top: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
-                        <h3 style="color: #5856D6; margin-top:0;">📊 Executive Class Diagnostic & Intervention Plan</h3>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    st.markdown(st.session_state["class_ai_report"])
-
-                st.markdown("---")
-                st.markdown("### 📋 Student Roster & Detailed Submissions")
-                
-                # Display Interactive Table
-                st.dataframe(
-                    df_results[["Timestamp", "Student ID", "Score", "Misconception Summary"]], 
-                    use_container_width=True, 
-                    height=260
-                )
-                
-                # Export Options
-                csv = df_results.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    "📥 Export Submissions as CSV", 
-                    data=csv, 
-                    file_name=f"Exit_Ticket_Results_{st.session_state.lesson_title.replace(' ', '_')}.csv", 
-                    mime='text/csv'
-                )
+                st.markdown("### 📋 Student Submissions Table")
+                st.dataframe(df_results[["Timestamp", "Student ID", "Score", "Misconception Summary"]], use_container_width=True)
 
         # ------------------------------------------
         # TAB 3: MASTERY LOOP REGISTRY
         # ------------------------------------------
         with tab_mastery:
-            st.markdown("<span class='ios-badge ios-badge-purple'>LONGITUDINAL TRACKING</span>", unsafe_allow_html=True)
-            st.markdown("### 🔄 Active Student Misconception Registry")
-            st.write("This table tracks unresolved learning gaps across lessons. When a student enters their name on a future exit ticket, the system automatically pulls from this list to test them again.")
+            st.markdown("<span class='ios-badge ios-badge-purple'>MASTERY LOOP REGISTRY</span>", unsafe_allow_html=True)
+            st.markdown("### Active & Resolved Student Misconceptions")
             
-            if st.session_state.student_misconceptions:
-                active_gaps = []
-                for student, gaps in st.session_state.student_misconceptions.items():
-                    for idx, g in enumerate(gaps):
-                        active_gaps.append({
-                            "Student ID": student,
-                            "Lesson Origin": g["lesson"],
-                            "Identified Misconception": g["misconception"],
-                            "Status": "✅ Mastered" if g["resolved"] else "⚠️ Pending Review"
-                        })
-                
-                if active_gaps:
-                    gap_df = pd.DataFrame(active_gaps)
-                    st.dataframe(gap_df, use_container_width=True, height=300)
-                    
-                    # Quick Manual Override to resolve/clear student errors if needed
-                    st.markdown("#### 🛠️ Manual Registry Controls")
-                    col_m1, col_m2 = st.columns(2)
-                    with col_m1:
-                        student_to_clear = st.selectbox("Select student to clear resolved gaps:", options=list(st.session_state.student_misconceptions.keys()))
-                    with col_m2:
-                        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-                        if st.button("Mark All Gaps as Resolved for Student"):
-                            for gap in st.session_state.student_misconceptions[student_to_clear]:
-                                gap["resolved"] = True
-                            st.success(f"Cleared gaps for {student_to_clear}!")
-                            st.rerun()
-                else:
-                    st.success("🎉 All student misconceptions have been successfully addressed and resolved!")
+            if not st.session_state.student_misconceptions:
+                st.info("No misconceptions tracked yet.")
             else:
-                st.info("The Mastery Loop registry is currently empty. Misconceptions detected during exit ticket submissions will accumulate here automatically.")
+                for student, gaps in st.session_state.student_misconceptions.items():
+                    with st.expander(f"👤 {student} ({len(gaps)} total records)"):
+                        for gap in gaps:
+                            status = "✅ Resolved" if gap.get("resolved") else "🚨 Active Gap"
+                            st.write(f"- **[{status}]** `{gap['lesson']}`: {gap['misconception']}")
