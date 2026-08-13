@@ -224,6 +224,52 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
 .stButton>button:active, .stDownloadButton>button:active {
     transform: scale(0.98) !important;
 }
+/* ==========================================
+   APPLE IPAD NATIVE TABS (SEGMENTED CONTROL)
+   ========================================== */
+/* Container holding the tab buttons */
+div[data-testid="stTabs"] > div[role="tablist"] {
+    background-color: rgba(118, 118, 128, 0.12) !important;
+    border-radius: 14px !important;
+    padding: 4px !important;
+    gap: 6px !important;
+    border: none !important;
+    margin-bottom: 24px !important;
+}
+
+/* Base Tab Button Styling */
+div[data-testid="stTabs"] button[role="tab"] {
+    background-color: transparent !important;
+    border-radius: 10px !important;
+    border: none !important;
+    color: #1C1C1E !important;
+    font-weight: 500 !important;
+    font-size: 0.92rem !important;
+    padding: 10px 18px !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    min-height: 40px !important;
+}
+
+/* Hover State */
+div[data-testid="stTabs"] button[role="tab"]:hover {
+    background-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Active Tab Highlight (Apple Card Style) */
+div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+    background-color: #FFFFFF !important;
+    color: #007AFF !important;
+    font-weight: 600 !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Remove default Streamlit bottom red bar indicator */
+div[data-testid="stTabs"] button[role="tab"] > div[data-testid="stMarkdownContainer"] {
+    border-bottom: none !important;
+}
+div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] {
+    display: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
