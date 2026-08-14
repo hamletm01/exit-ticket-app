@@ -533,33 +533,36 @@ if app_mode == "🎓 Student Portal":
                             
                             save_db(fresh_db)
                             
-                            st.markdown(f"""
-                            <div class="ios-feedback-card">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <span class="ios-badge ios-badge-green">EVALUATION COMPLETE</span>
-                                    <span class="ios-badge ios-badge-blue">SCORE: {result_json.get('score')}</span>
-                                </div>
-                                
-                                <h3 style="color: #1C1C1E; font-weight: 700; margin-top: 8px;">Diagnostic Feedback for {clean_name}</h3>
-                                <hr style="border: none; border-top: 1px solid rgba(0,0,0,0.08); margin: 16px 0;">
-                                
-                                <p><strong style="color: #28CD41;">✅ What You Understood Well:</strong><br>{result_json.get('correct_aspects')}</p>
-                                
-                                <p><strong style="color: #FF3B30;">🔍 Areas needing Attention:</strong><br>{result_json.get('incorrect_aspects')}</p>
-                                
-                                <div style="background: #F2F2F7; padding: 16px; border-radius: 14px; margin: 16px 0;">
-                                    <strong style="color: #007AFF;">📖 What to Revise Before Next Lesson:</strong>
-                                    <ul style="margin: 8px 0 0 18px; padding: 0;">
-                                        {"".join([f"<li>{t}</li>" for t in result_json.get('revision_topics', [])])}
-                                    </ul>
-                                </div>
-                                
-                                <div style="background: rgba(255, 149, 0, 0.12); border-left: 4px solid #FF9500; padding: 16px; border-radius: 12px; margin-top: 16px;">
-                                    <strong style="color: #FF9500;">🙋 Question to Ask Your Teacher Next Lesson:</strong>
-                                    <p style="margin: 6px 0 0 0; font-weight: 600; color: #1C1C1E;">"{result_json.get('teacher_clarification_question')}"</p>
-                                </div>
-                            </div>
-                            """, unsafe_allow_html=True)
+                            revision_items = "".join([f"<li>{t}</li>" for t in result_json.get('revision_topics', [])])
+
+                            st.markdown(
+f"""<div class="ios-feedback-card">
+<div style="display: flex; justify-content: space-between; align-items: center;">
+<span class="ios-badge ios-badge-green">EVALUATION COMPLETE</span>
+<span class="ios-badge ios-badge-blue">SCORE: {result_json.get('score')}</span>
+</div>
+
+<h3 style="color: #1C1C1E; font-weight: 700; margin-top: 8px;">Diagnostic Feedback for {clean_name}</h3>
+<hr style="border: none; border-top: 1px solid rgba(0,0,0,0.08); margin: 16px 0;">
+
+<p><strong style="color: #28CD41;">✅ What You Understood Well:</strong><br>{result_json.get('correct_aspects')}</p>
+
+<p><strong style="color: #FF3B30;">🔍 Areas needing Attention:</strong><br>{result_json.get('incorrect_aspects')}</p>
+
+<div style="background: #F2F2F7; padding: 16px; border-radius: 14px; margin: 16px 0;">
+<strong style="color: #007AFF;">📖 What to Revise Before Next Lesson:</strong>
+<ul style="margin: 8px 0 0 18px; padding: 0;">
+{revision_items}
+</ul>
+</div>
+
+<div style="background: rgba(255, 149, 0, 0.12); border-left: 4px solid #FF9500; padding: 16px; border-radius: 12px; margin-top: 16px;">
+<strong style="color: #FF9500;">🙋 Question to Ask Your Teacher Next Lesson:</strong>
+<p style="margin: 6px 0 0 0; font-weight: 600; color: #1C1C1E;">"{result_json.get('teacher_clarification_question')}"</p>
+</div>
+</div>""", 
+unsafe_allow_html=True
+)
 
 # ==========================================
 # VIEW 2: TEACHER DASHBOARD & ANALYTICS
@@ -568,7 +571,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
     st.markdown(f"""
     <div class="ios-hero-teacher">
         <h1>👨‍🏫 Teacher Studio & Analytics</h1>
-        <p>Active Scope: <strong>{st.session_state.active_course}</strong> $\rightarrow$ <strong>{st.session_state.active_period}</strong></p>
+        <p>Active Scope: <strong>{st.session_state.active_course}</strong> → <strong>{st.session_state.active_period}</strong></p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -679,72 +682,65 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                 
                 saved_tickets = db.get("ticket_library", {})
                 if saved_tickets:
-                    selected_ticket = st.selectbox("Load saved ticket into active period:", options=list(saved_tickets.keys()))
-                    if st.button("📂 Load Selected Ticket"):
+                    selected_lib_ticket = st.selectbox("Load Saved Ticket:", list(saved_tickets.keys()))
+                    if st.button("Deploy Saved Ticket to Active Period 🚀"):
                         fresh_db = load_db()
                         fresh_db["session_tickets"][session_key] = {
-                            "title": selected_ticket,
-                            "questions": saved_tickets[selected_ticket]
+                            "title": selected_lib_ticket,
+                            "questions": saved_tickets[selected_lib_ticket]
                         }
                         save_db(fresh_db)
-                        st.success(f"Loaded '{selected_ticket}' into {st.session_state.active_period}!")
+                        st.success(f"Deployed '{selected_lib_ticket}' to {st.session_state.active_period}!")
                         st.rerun()
 
-        # TAB 2: ANALYTICS
+        # TAB 2: ANALYTICS & INSIGHTS
         elif selected_tab == "📊 Class Analytics & AI Insights":
-            st.markdown("<span class='ios-badge ios-badge-green'>REAL-TIME CLASS DIAGNOSTICS</span>", unsafe_allow_html=True)
-            
-            # Read directly from DB to get student submissions live
-            fresh_db = load_db()
-            session_data = fresh_db.get("student_results", {}).get(session_key, [])
-            
-            if not session_data:
-                st.info(f"💡 No student submissions recorded for **{st.session_state.active_course} ({st.session_state.active_period})** yet.")
+            st.markdown("<span class='ios-badge ios-badge-blue'>LIVE DIAGNOSTICS</span>", unsafe_allow_html=True)
+            st.markdown(f"### Student Submissions for {st.session_state.active_period}")
+
+            results = db.get("student_results", {}).get(session_key, [])
+
+            if not results:
+                st.info("No student responses recorded for this period yet.")
             else:
-                df_results = pd.DataFrame(session_data)
-                
-                m1, m2, m3, m4 = st.columns(4)
-                m1.metric("Total Submissions", len(df_results))
-                m2.metric("Active Misconceptions", sum(1 for r in session_data if r.get("Misconception Summary") != "None"))
-                m3.metric("Current Unit", curr_ticket.get('title', 'N/A')[:18] + "...")
-                m4.metric("Database Sync", "Live 🟢")
-                
-                st.markdown("---")
-                
-                st.markdown(f"### 🤖 AI Synthesis for {st.session_state.active_period}")
-                if st.button("Generate Class Analysis & Intervention Plan 💡"):
-                    with st.spinner("Analyzing whole-class trends..."):
-                        synthesis_prompt = f"""
-                        You are an expert instructional coach. Review these exit ticket results for the lesson "{curr_ticket.get('title')}" in class "{session_key}":
-                        
-                        Data:
-                        {json.dumps(session_data)}
-                        
-                        Provide a clear synthesis:
-                        1. Major overall trends across all students.
-                        2. Key recurring misconceptions identified.
-                        3. Suggested mini-lesson or warm-up activity for the start of next class.
+                df = pd.DataFrame(results)
+                st.dataframe(df[["Timestamp", "Student ID", "Score", "Misconception Summary"]], use_container_width=True)
+
+                if st.button("✨ Generate AI Class-Wide Insight Summary"):
+                    with st.spinner("Analyzing overall class misconceptions..."):
+                        all_summaries = "\n".join([f"- {r['Student ID']}: {r['Misconception Summary']}" for r in results if r.get('Misconception Summary')])
+                        insight_prompt = f"""
+                        Analyze these misconception summaries from a high school class exit ticket:
+                        {all_summaries}
+
+                        Provide a quick 3-bullet point executive summary for the teacher:
+                        1. Overall class understanding level
+                        2. Common recurring misconceptions
+                        3. Suggested 5-minute warm-up activity for next class
                         """
-                        synth_res = client.models.generate_content(model=MODEL_NAME, contents=synthesis_prompt)
-                        st.write(synth_res.text)
+                        insight_res = client.models.generate_content(model=MODEL_NAME, contents=insight_prompt)
+                        st.markdown(f"""
+                        <div class="ios-card-container" style="margin-top: 16px;">
+                            <h4 style="color: #007AFF;">🤖 Class-Wide AI Insights</h4>
+                            {insight_res.text}
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                st.markdown("### 📋 Student Submissions Table")
-                st.dataframe(df_results[["Timestamp", "Student ID", "Score", "Misconception Summary"]], use_container_width=True)
-
-        # TAB 3: MASTERY LOOP
+        # TAB 3: MASTERY LOOP REGISTRY
         elif selected_tab == "🔄 Mastery Loop Registry":
-            st.markdown("<span class='ios-badge ios-badge-purple'>MASTERY LOOP REGISTRY</span>", unsafe_allow_html=True)
-            st.markdown(f"### Student Misconceptions ({st.session_state.active_course} - {st.session_state.active_period})")
-            
-            fresh_db = load_db()
-            session_gaps = fresh_db.get("student_misconceptions", {}).get(session_key, {})
-            
-            if not session_gaps or not any(gaps for gaps in session_gaps.values()):
-                st.info(f"No misconceptions tracked for **{session_key}** yet.")
-            else:
-                for student, gaps in session_gaps.items():
-                    if gaps:
-                        with st.expander(f"👤 {student} ({len(gaps)} total records)"):
-                            for gap in gaps:
-                                status = "✅ Resolved" if gap.get("resolved") else "🚨 Active Gap"
-                                st.write(f"- **[{status}]** `{gap['lesson']}`: {gap['misconception']}")
+            st.markdown("<span class='ios-badge ios-badge-purple'>LEARNING CONTINUITY</span>", unsafe_allow_html=True)
+            st.markdown(f"### Unresolved Misconceptions ({st.session_state.active_period})")
+
+            period_gaps = db.get("student_misconceptions", {}).get(session_key, {})
+            has_gaps = False
+
+            for student, gaps in period_gaps.items():
+                active_student_gaps = [g for g in gaps if not g.get("resolved", False)]
+                if active_student_gaps:
+                    has_gaps = True
+                    st.write(f"**👤 {student}**")
+                    for gap in active_student_gaps:
+                        st.markdown(f"- **Lesson:** {gap['lesson']} | **Gap:** {gap['misconception']}")
+
+            if not has_gaps:
+                st.success("🎉 No active unresolved misconceptions found for this class period!")
