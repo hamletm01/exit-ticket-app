@@ -274,6 +274,53 @@ button[data-baseweb="tab"][aria-selected="true"] span {
 div[data-baseweb="tab-highlight"] {
     display: none !important;
 }
+/* ==========================================
+   IPAD NATIVE SEGMENTED CONTROL MENU
+   ========================================== */
+
+/* Outer capsule container */
+div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) > div {
+    background-color: rgba(118, 118, 128, 0.16) !important;
+    border-radius: 16px !important;
+    padding: 6px !important;
+    gap: 6px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    width: 100% !important;
+}
+
+/* Individual Pill Button (Large Touch Target) */
+div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label {
+    flex: 1 1 0% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 14px 20px !important;
+    min-height: 52px !important;        /* Touch-friendly height */
+    border-radius: 12px !important;
+    background: transparent !important;
+    color: #1C1C1E !important;
+    font-weight: 500 !important;
+    font-size: 1rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    border: none !important;
+    margin: 0 !important;
+    text-align: center !important;
+}
+
+/* Active Selected Pill */
+div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label:has(input:checked) {
+    background-color: #FFFFFF !important;
+    color: #007AFF !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Hide raw radio circles */
+div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) input[type="radio"] {
+    display: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
