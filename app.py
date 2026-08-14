@@ -49,7 +49,6 @@ section[data-testid="stSidebar"] {
     padding-top: 1rem !important;
 }
 
-/* Prevent Sidebar Columns from rendering white card frames */
 section[data-testid="stSidebar"] div[data-testid="stColumn"] > div {
     background: transparent !important;
     border-radius: 0 !important;
@@ -58,7 +57,7 @@ section[data-testid="stSidebar"] div[data-testid="stColumn"] > div {
     border: none !important;
 }
 
-/* Custom iOS Segmented Control */
+/* Custom iOS Segmented Control for Radio */
 div[data-testid="stRadio"] > div {
     background: rgba(120, 120, 128, 0.12) !important;
     border-radius: 12px !important;
@@ -121,7 +120,7 @@ div[data-testid="stRadio"] input[type="radio"] { display: none !important; }
     font-weight: 400 !important;
 }
 
-/* iOS Main Content Section Card Styling */
+/* iOS Cards */
 section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-container {
     background: #FFFFFF !important;
     border-radius: 20px !important;
@@ -131,7 +130,7 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     overflow: hidden !important;
 }
 
-/* iOS Pill Badges */
+/* iOS Badges */
 .ios-badge {
     display: inline-block;
     padding: 5px 14px;
@@ -148,7 +147,6 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
 .ios-badge-orange { background: rgba(255, 149, 0, 0.15); color: #FF9500; }
 .ios-badge-red { background: rgba(255, 59, 48, 0.15); color: #FF3B30; }
 
-/* Custom Question Boxes */
 .ios-single-qbox {
     background: #F8F9FA;
     border-radius: 16px;
@@ -171,7 +169,6 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     color: #1C1C1E;
 }
 
-/* Feedback Card */
 .ios-feedback-card {
     background: #FFFFFF;
     border: 1px solid rgba(0, 122, 255, 0.2);
@@ -197,7 +194,6 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.18) !important;
 }
 
-/* Buttons */
 .stButton>button, .stDownloadButton>button {
     background: #007AFF !important;
     color: #FFFFFF !important;
@@ -216,69 +212,9 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     min-height: 44px !important;
 }
 
-.stButton>button:hover, .stDownloadButton>button:hover {
-    background: #0062D6 !important;
-    transform: translateY(-1px) !important;
-}
-
-.stButton>button:active, .stDownloadButton>button:active {
-    transform: scale(0.98) !important;
-}
-
-/* ==========================================
-   SAFE & CLEAN SEGMENTED TAB OVERRIDE
-   ========================================== */
-
-/* Outer Tab Container */
-div[data-baseweb="tab-list"] {
-    background-color: rgba(118, 118, 128, 0.12) !important;
-    border-radius: 14px !important;
-    padding: 4px !important;
-    gap: 4px !important;
-    border: none !important;
-    margin-bottom: 24px !important;
-}
-
-/* Base Tab Button */
-button[data-baseweb="tab"] {
-    background-color: transparent !important;
-    border-radius: 10px !important;
-    border: none !important;
-    padding: 10px 16px !important;
-    height: auto !important;
-}
-
-/* Force Default Text Color to Dark Grey */
-button[data-baseweb="tab"] p, 
-button[data-baseweb="tab"] span {
-    color: #1C1C1E !important;
-    font-weight: 500 !important;
-    font-size: 0.95rem !important;
-}
-
-/* Active Selected Tab Styling */
-button[data-baseweb="tab"][aria-selected="true"] {
-    background-color: #FFFFFF !important;
-    border-radius: 10px !important;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.12) !important;
-}
-
-/* Active Selected Text Color Override (Changes Red to Blue) */
-button[data-baseweb="tab"][aria-selected="true"] p, 
-button[data-baseweb="tab"][aria-selected="true"] span {
-    color: #007AFF !important;
-    font-weight: 600 !important;
-}
-
-/* Hide Red Indicator Bar Cleanly */
-div[data-baseweb="tab-highlight"] {
-    display: none !important;
-}
 /* ==========================================
    IPAD NATIVE SEGMENTED CONTROL MENU
    ========================================== */
-
-/* Outer capsule container */
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) > div {
     background-color: rgba(118, 118, 128, 0.16) !important;
     border-radius: 16px !important;
@@ -289,14 +225,13 @@ div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) > div {
     width: 100% !important;
 }
 
-/* Individual Pill Button (Large Touch Target) */
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label {
     flex: 1 1 0% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     padding: 14px 20px !important;
-    min-height: 52px !important;        /* Touch-friendly height */
+    min-height: 52px !important;
     border-radius: 12px !important;
     background: transparent !important;
     color: #1C1C1E !important;
@@ -309,7 +244,6 @@ div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label {
     text-align: center !important;
 }
 
-/* Active Selected Pill */
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label:has(input:checked) {
     background-color: #FFFFFF !important;
     color: #007AFF !important;
@@ -317,7 +251,6 @@ div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label:has(inpu
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* Hide raw radio circles */
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) input[type="radio"] {
     display: none !important;
 }
@@ -334,23 +267,38 @@ else:
 
 MODEL_NAME = "gemini-3.6-flash"
 
-# Session State Initialization
-if "questions" not in st.session_state:
-    st.session_state.questions = "1. Explain the process of evapotranspiration in your own words.\n2. How does the urban heat island effect impact localized weather conditions?\n3. Describe two primary environmental factors that drive atmospheric circulation."
-if "lesson_title" not in st.session_state:
-    st.session_state.lesson_title = "Water Cycle & Climate Dynamics"
-if "student_results" not in st.session_state:
-    st.session_state.student_results = []
+# ==========================================
+# MULTI-CLASS SESSION STATE INITIALIZATION
+# ==========================================
+if "classes" not in st.session_state:
+    st.session_state.classes = ["Period 1 - Earth Science", "Period 3 - Environmental Studies"]
+
+if "active_class" not in st.session_state:
+    st.session_state.active_class = "Period 1 - Earth Science"
+
 if "teacher_authenticated" not in st.session_state:
     st.session_state.teacher_authenticated = False
-if "ticket_library" not in st.session_state:
-    st.session_state.ticket_library = {
-        "Water Cycle & Climate Dynamics": "1. Explain the process of evapotranspiration in your own words.\n2. How does the urban heat island effect impact localized weather conditions?\n3. Describe two primary environmental factors that drive atmospheric circulation.",
-        "Photosynthesis Basics": "1. What is the overall chemical equation for photosynthesis?\n2. What specific role does chlorophyll play in light absorption?\n3. How do plant stomata regulate gas exchange during high temperatures?"
+
+if "class_tickets" not in st.session_state:
+    st.session_state.class_tickets = {
+        "Period 1 - Earth Science": {
+            "title": "Water Cycle & Climate Dynamics",
+            "questions": "1. Explain the process of evapotranspiration in your own words.\n2. How does the urban heat island effect impact localized weather conditions?\n3. Describe two primary environmental factors that drive atmospheric circulation."
+        },
+        "Period 3 - Environmental Studies": {
+            "title": "Photosynthesis Basics",
+            "questions": "1. What is the overall chemical equation for photosynthesis?\n2. What specific role does chlorophyll play in light absorption?\n3. How do plant stomata regulate gas exchange during high temperatures?"
+        }
     }
 
+if "student_results" not in st.session_state:
+    st.session_state.student_results = {c: [] for c in st.session_state.classes}
+
 if "student_misconceptions" not in st.session_state:
-    st.session_state.student_misconceptions = {}
+    st.session_state.student_misconceptions = {c: {} for c in st.session_state.classes}
+
+if "ticket_library" not in st.session_state:
+    st.session_state.ticket_library = {}
 
 # Helper Functions
 def parse_questions(raw_text):
@@ -388,7 +336,7 @@ def extract_text(file):
     return text
 
 # ==========================================
-# SIDEBAR: IPAD CONTROL CENTER
+# SIDEBAR: IPAD CONTROL CENTER & CLASS SELECT
 # ==========================================
 with st.sidebar:
     st.markdown("""
@@ -397,6 +345,16 @@ with st.sidebar:
         <div style="font-size: 1.35rem; font-weight: 700; color: #1C1C1E; letter-spacing: -0.3px; margin-top: 2px;">Control Center</div>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Global Class Switcher
+    st.markdown("<div style='font-size: 0.78rem; font-weight: 600; color: #8E8E93; margin: 6px 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px;'>Active Class / Period</div>", unsafe_allow_html=True)
+    selected_cls = st.selectbox(
+        "Active Class:",
+        options=st.session_state.classes,
+        index=st.session_state.classes.index(st.session_state.active_class) if st.session_state.active_class in st.session_state.classes else 0,
+        label_visibility="collapsed"
+    )
+    st.session_state.active_class = selected_cls
     
     st.markdown("<div style='font-size: 0.78rem; font-weight: 600; color: #8E8E93; margin: 12px 0 6px 0; text-transform: uppercase; letter-spacing: 0.5px;'>Portal Mode</div>", unsafe_allow_html=True)
     app_mode = st.radio("Select View:", ["🎓 Student Portal", "👨‍🏫 Teacher Studio"], label_visibility="collapsed")
@@ -419,6 +377,10 @@ with st.sidebar:
                 st.session_state.teacher_authenticated = False
                 st.rerun()
 
+# Get Context for Currently Active Class
+curr_class = st.session_state.active_class
+curr_ticket = st.session_state.class_tickets.get(curr_class, {"title": "General Unit", "questions": ""})
+
 # ==========================================
 # VIEW 1: STUDENT PORTAL
 # ==========================================
@@ -426,16 +388,16 @@ if app_mode == "🎓 Student Portal":
     st.markdown(f"""
     <div class="ios-hero-student">
         <h1>🎓 Lesson Exit Ticket</h1>
-        <p>Topic: {st.session_state.lesson_title}</p>
+        <p>Class: <strong>{curr_class}</strong> | Topic: {curr_ticket['title']}</p>
     </div>
     """, unsafe_allow_html=True)
     
-    if not st.session_state.questions:
+    if not curr_ticket['questions']:
         st.markdown("""
         <div class="ios-card-container" style="text-align: center; padding: 48px 24px;">
             <div style="font-size: 3rem; margin-bottom: 12px;">⏳</div>
             <h3 style="font-weight: 700; color: #1C1C1E; margin-bottom: 8px;">Waiting for Active Ticket</h3>
-            <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Your teacher hasn't published an exit ticket for this session yet. Please check back shortly!</p>
+            <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Your teacher hasn't published an exit ticket for this class yet. Please check back shortly!</p>
         </div>
         """, unsafe_allow_html=True)
     else:
@@ -443,13 +405,12 @@ if app_mode == "🎓 Student Portal":
         clean_name = student_name.strip().title() if student_name else ""
         
         if clean_name:
-            base_questions = parse_questions(st.session_state.questions)
+            base_questions = parse_questions(curr_ticket['questions'])
             mastery_question = None
             
-            unresolved_gaps = [
-                gap for gap in st.session_state.student_misconceptions.get(clean_name, [])
-                if not gap.get("resolved", False)
-            ]
+            # Fetch gaps for active class
+            class_gaps = st.session_state.student_misconceptions.get(curr_class, {}).get(clean_name, [])
+            unresolved_gaps = [gap for gap in class_gaps if not gap.get("resolved", False)]
             
             if unresolved_gaps:
                 last_gap = unresolved_gaps[-1]
@@ -515,7 +476,8 @@ if app_mode == "🎓 Student Portal":
                             You are a supportive, high-efficiency high school AI tutor.
                             Evaluate this student's ({clean_name}) exit ticket submission.
                             
-                            Topic: {st.session_state.lesson_title}
+                            Class: {curr_class}
+                            Topic: {curr_ticket['title']}
                             Submission Data:
                             {qa_payload}
                             
@@ -550,16 +512,18 @@ if app_mode == "🎓 Student Portal":
                                     "misconception_summary": None
                                 }
                             
-                            if clean_name not in st.session_state.student_misconceptions:
-                                st.session_state.student_misconceptions[clean_name] = []
+                            if curr_class not in st.session_state.student_misconceptions:
+                                st.session_state.student_misconceptions[curr_class] = {}
+                            if clean_name not in st.session_state.student_misconceptions[curr_class]:
+                                st.session_state.student_misconceptions[curr_class][clean_name] = []
                                 
                             if mastery_question and not result_json.get("has_misconception", False):
-                                for gap in st.session_state.student_misconceptions[clean_name]:
+                                for gap in st.session_state.student_misconceptions[curr_class][clean_name]:
                                     gap["resolved"] = True
                             
                             if result_json.get("has_misconception") and result_json.get("misconception_summary"):
-                                st.session_state.student_misconceptions[clean_name].append({
-                                    "lesson": st.session_state.lesson_title,
+                                st.session_state.student_misconceptions[curr_class][clean_name].append({
+                                    "lesson": curr_ticket['title'],
                                     "misconception": result_json["misconception_summary"],
                                     "resolved": False
                                 })
@@ -571,7 +535,10 @@ if app_mode == "🎓 Student Portal":
                                 "Misconception Summary": result_json.get("misconception_summary", "None"),
                                 "Full Feedback": response.text
                             }
-                            st.session_state.student_results.append(res_entry)
+                            
+                            if curr_class not in st.session_state.student_results:
+                                st.session_state.student_results[curr_class] = []
+                            st.session_state.student_results[curr_class].append(res_entry)
                             
                             st.markdown(f"""
                             <div class="ios-feedback-card">
@@ -605,10 +572,10 @@ if app_mode == "🎓 Student Portal":
 # VIEW 2: TEACHER DASHBOARD & ANALYTICS
 # ==========================================
 elif app_mode == "👨‍🏫 Teacher Studio":
-    st.markdown("""
+    st.markdown(f"""
     <div class="ios-hero-teacher">
         <h1>👨‍🏫 Teacher Studio & Analytics</h1>
-        <p>Curriculum Design, Live Class Diagnostic Analytics & Targeted Intervention</p>
+        <p>Active Class: <strong>{curr_class}</strong></p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -621,7 +588,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         </div>
         """, unsafe_allow_html=True)
     else:
-        # iPad Native Segmented Control Bar
+        # Segmented Control Pill Bar for iPad Touch
         selected_tab = st.radio(
             "Teacher Studio Navigation",
             ["📝 Ticket Authoring", "📊 Class Analytics & AI Insights", "🔄 Mastery Loop Registry"],
@@ -633,19 +600,33 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 
         # ------------------------------------------
-        # TAB 1: CURRICULUM AUTHORING
+        # TAB 1: CURRICULUM AUTHORING & CLASS CREATOR
         # ------------------------------------------
         if selected_tab == "📝 Ticket Authoring":
+            
+            # Class Creator Expander
+            with st.expander("➕ Create & Add New Class Period"):
+                new_class_input = st.text_input("New Class Period Name:", placeholder="e.g. Period 4 - AP Biology")
+                if st.button("Add New Class Period 🏫"):
+                    if new_class_input and new_class_input not in st.session_state.classes:
+                        st.session_state.classes.append(new_class_input)
+                        st.session_state.student_results[new_class_input] = []
+                        st.session_state.student_misconceptions[new_class_input] = {}
+                        st.session_state.class_tickets[new_class_input] = {"title": "New Unit", "questions": ""}
+                        st.session_state.active_class = new_class_input
+                        st.success(f"Class '{new_class_input}' created!")
+                        st.rerun()
+
             col_left, col_right = st.columns([1, 1], gap="large")
             with col_left:
                 st.markdown("<span class='ios-badge ios-badge-blue'>CURRICULUM AUTHORING</span>", unsafe_allow_html=True)
-                st.markdown("### Create or Generate Ticket")
+                st.markdown(f"### Create Ticket for {curr_class}")
                 
-                lesson_title = st.text_input("Lesson Title / Unit Topic:", value=st.session_state.lesson_title)
+                lesson_title = st.text_input("Lesson Title / Unit Topic:", value=curr_ticket['title'])
                 uploaded_file = st.file_uploader("Upload Lesson Content (PDF, DOCX, TXT):", type=["pdf", "docx", "txt"])
                 raw_notes = st.text_area("Or Paste Syllabus Notes / Outline:", height=110, placeholder="Paste lesson objectives, key facts, or syllabus points...")
                 
-                if st.button("Generate & Set Active 📢"):
+                if st.button("Generate & Publish Ticket 📢"):
                     combined_text = ""
                     if uploaded_file:
                         combined_text += extract_text(uploaded_file)
@@ -663,9 +644,11 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                             {combined_text[:4000]}
                             """
                             ticket_res = client.models.generate_content(model=MODEL_NAME, contents=gen_prompt)
-                            st.session_state.questions = ticket_res.text
-                            st.session_state.lesson_title = lesson_title
-                            st.success("Exit Ticket Published! Students can now complete it on the Student Portal.")
+                            st.session_state.class_tickets[curr_class] = {
+                                "title": lesson_title,
+                                "questions": ticket_res.text
+                            }
+                            st.success(f"Exit Ticket Published for {curr_class}!")
                             st.rerun()
                     else:
                         st.error("Please upload a file or paste syllabus text first.")
@@ -674,21 +657,23 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                 st.markdown("<span class='ios-badge ios-badge-orange'>TICKET LIBRARY</span>", unsafe_allow_html=True)
                 st.markdown("### 💾 Saved Ticket Manager")
                 
-                if st.session_state.questions:
+                if curr_ticket['questions']:
                     if st.button("💾 Save Active Ticket to Library"):
-                        st.session_state.ticket_library[st.session_state.lesson_title] = st.session_state.questions
-                        st.success(f"Saved '{st.session_state.lesson_title}' to Library!")
+                        st.session_state.ticket_library[curr_ticket['title']] = curr_ticket['questions']
+                        st.success(f"Saved '{curr_ticket['title']}' to Library!")
                 
                 if st.session_state.ticket_library:
                     selected_ticket = st.selectbox(
-                        "Load saved ticket into active session:",
+                        "Load saved ticket into active class:",
                         options=list(st.session_state.ticket_library.keys())
                     )
                     
                     if st.button("📂 Load Selected Ticket"):
-                        st.session_state.lesson_title = selected_ticket
-                        st.session_state.questions = st.session_state.ticket_library[selected_ticket]
-                        st.success(f"Loaded '{selected_ticket}' into active Student Portal!")
+                        st.session_state.class_tickets[curr_class] = {
+                            "title": selected_ticket,
+                            "questions": st.session_state.ticket_library[selected_ticket]
+                        }
+                        st.success(f"Loaded '{selected_ticket}' into {curr_class}!")
                         st.rerun()
 
         # ------------------------------------------
@@ -697,32 +682,34 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         elif selected_tab == "📊 Class Analytics & AI Insights":
             st.markdown("<span class='ios-badge ios-badge-green'>REAL-TIME CLASS DIAGNOSTICS</span>", unsafe_allow_html=True)
             
-            if not st.session_state.student_results:
-                st.info("💡 No student submissions recorded yet. Once students submit their exit tickets, diagnostic data will populate here in real time.")
+            class_data = st.session_state.student_results.get(curr_class, [])
+            
+            if not class_data:
+                st.info(f"💡 No student submissions recorded for **{curr_class}** yet.")
             else:
-                df_results = pd.DataFrame(st.session_state.student_results)
+                df_results = pd.DataFrame(class_data)
                 
                 # Metrics Bar
                 m1, m2, m3, m4 = st.columns(4)
                 total_submissions = len(df_results)
-                misconception_count = sum(1 for r in st.session_state.student_results if r.get("Misconception Summary") != "None")
+                misconception_count = sum(1 for r in class_data if r.get("Misconception Summary") != "None")
                 
                 m1.metric("Total Submissions", total_submissions)
                 m2.metric("Active Misconceptions", misconception_count)
-                m3.metric("Current Unit", st.session_state.lesson_title[:18] + "...")
+                m3.metric("Current Unit", curr_ticket['title'][:18] + "...")
                 m4.metric("System Health", "Optimal 🟢")
                 
                 st.markdown("---")
                 
                 # Class Synthesis Generator
-                st.markdown("### 🤖 Class-Wide AI Synthesis")
+                st.markdown(f"### 🤖 AI Synthesis for {curr_class}")
                 if st.button("Generate Class Analysis & Intervention Plan 💡"):
                     with st.spinner("Analyzing whole-class trends..."):
                         synthesis_prompt = f"""
-                        You are an expert instructional coach. Review these exit ticket results for the lesson "{st.session_state.lesson_title}":
+                        You are an expert instructional coach. Review these exit ticket results for the lesson "{curr_ticket['title']}" in class "{curr_class}":
                         
                         Data:
-                        {json.dumps(st.session_state.student_results)}
+                        {json.dumps(class_data)}
                         
                         Provide a clear synthesis:
                         1. Major overall trends across all students.
@@ -740,13 +727,16 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         # ------------------------------------------
         elif selected_tab == "🔄 Mastery Loop Registry":
             st.markdown("<span class='ios-badge ios-badge-purple'>MASTERY LOOP REGISTRY</span>", unsafe_allow_html=True)
-            st.markdown("### Active & Resolved Student Misconceptions")
+            st.markdown(f"### Student Misconceptions ({curr_class})")
             
-            if not st.session_state.student_misconceptions:
-                st.info("No misconceptions tracked yet.")
+            class_gaps = st.session_state.student_misconceptions.get(curr_class, {})
+            
+            if not class_gaps or not any(gaps for gaps in class_gaps.values()):
+                st.info(f"No misconceptions tracked for **{curr_class}** yet.")
             else:
-                for student, gaps in st.session_state.student_misconceptions.items():
-                    with st.expander(f"👤 {student} ({len(gaps)} total records)"):
-                        for gap in gaps:
-                            status = "✅ Resolved" if gap.get("resolved") else "🚨 Active Gap"
-                            st.write(f"- **[{status}]** `{gap['lesson']}`: {gap['misconception']}")
+                for student, gaps in class_gaps.items():
+                    if gaps:
+                        with st.expander(f"👤 {student} ({len(gaps)} total records)"):
+                            for gap in gaps:
+                                status = "✅ Resolved" if gap.get("resolved") else "🚨 Active Gap"
+                                st.write(f"- **[{status}]** `{gap['lesson']}`: {gap['misconception']}")
