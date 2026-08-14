@@ -574,16 +574,18 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         </div>
         """, unsafe_allow_html=True)
     else:
-        tab_authoring, tab_analytics, tab_mastery = st.tabs([
-            "📝 Ticket Authoring", 
-            "📊 Class Analytics & AI Insights", 
-            "🔄 Mastery Loop Registry"
-        ])
+       selected_tab = st.radio(
+            "Teacher Studio Navigation",
+            ["📝 Ticket Authoring", "📊 Class Analytics & AI Insights", "🔄 Mastery Loop Registry"],
+            key="teacher_studio_menu",
+            horizontal=True,
+            label_visibility="collapsed"
+        )
 
         # ------------------------------------------
         # TAB 1: CURRICULUM AUTHORING
         # ------------------------------------------
-        with tab_authoring:
+        if selected_tab == "📝 Ticket Authoring":
             col_left, col_right = st.columns([1, 1], gap="large")
             with col_left:
                 st.markdown("<span class='ios-badge ios-badge-blue'>CURRICULUM AUTHORING</span>", unsafe_allow_html=True)
@@ -642,7 +644,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         # ------------------------------------------
         # TAB 2: CLASS ANALYTICS & AI INSIGHTS
         # ------------------------------------------
-        with tab_analytics:
+        elif selected_tab == "📊 Class Analytics & AI Insights":
             st.markdown("<span class='ios-badge ios-badge-green'>REAL-TIME CLASS DIAGNOSTICS</span>", unsafe_allow_html=True)
             
             if not st.session_state.student_results:
@@ -686,7 +688,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         # ------------------------------------------
         # TAB 3: MASTERY LOOP REGISTRY
         # ------------------------------------------
-        with tab_mastery:
+        elif selected_tab == "🔄 Mastery Loop Registry":
             st.markdown("<span class='ios-badge ios-badge-purple'>MASTERY LOOP REGISTRY</span>", unsafe_allow_html=True)
             st.markdown("### Active & Resolved Student Misconceptions")
             
