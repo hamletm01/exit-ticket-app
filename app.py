@@ -18,7 +18,7 @@ st.set_page_config(
 # ==========================================
 # APPLE HUMAN INTERFACE DESIGN (HIG) SYSTEM
 # ==========================================
-st.markdown("""
+st.markdown(st.markdown("""
 <style>
 /* Import Inter / SF Pro Fallback */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -49,7 +49,6 @@ section[data-testid="stSidebar"] {
     padding-top: 1rem !important;
 }
 
-/* Prevent Sidebar Columns from rendering white card frames */
 section[data-testid="stSidebar"] div[data-testid="stColumn"] > div {
     background: transparent !important;
     border-radius: 0 !important;
@@ -58,7 +57,7 @@ section[data-testid="stSidebar"] div[data-testid="stColumn"] > div {
     border: none !important;
 }
 
-/* Custom iOS Segmented Control */
+/* Custom iOS Segmented Control for Radio */
 div[data-testid="stRadio"] > div {
     background: rgba(120, 120, 128, 0.12) !important;
     border-radius: 12px !important;
@@ -121,7 +120,7 @@ div[data-testid="stRadio"] input[type="radio"] { display: none !important; }
     font-weight: 400 !important;
 }
 
-/* iOS Main Content Section Card Styling */
+/* iOS Cards */
 section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-container {
     background: #FFFFFF !important;
     border-radius: 20px !important;
@@ -131,7 +130,7 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     overflow: hidden !important;
 }
 
-/* iOS Pill Badges */
+/* iOS Badges */
 .ios-badge {
     display: inline-block;
     padding: 5px 14px;
@@ -148,7 +147,6 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
 .ios-badge-orange { background: rgba(255, 149, 0, 0.15); color: #FF9500; }
 .ios-badge-red { background: rgba(255, 59, 48, 0.15); color: #FF3B30; }
 
-/* Custom Question Boxes */
 .ios-single-qbox {
     background: #F8F9FA;
     border-radius: 16px;
@@ -171,7 +169,6 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     color: #1C1C1E;
 }
 
-/* Feedback Card */
 .ios-feedback-card {
     background: #FFFFFF;
     border: 1px solid rgba(0, 122, 255, 0.2);
@@ -181,7 +178,7 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
 }
 
-/* Form Controls & Inputs */
+/* Inputs & Buttons */
 .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div {
     background-color: #F2F2F7 !important;
     border: 1px solid rgba(0, 0, 0, 0.08) !important;
@@ -197,7 +194,6 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.18) !important;
 }
 
-/* Buttons */
 .stButton>button, .stDownloadButton>button {
     background: #007AFF !important;
     color: #FFFFFF !important;
@@ -216,73 +212,67 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     min-height: 44px !important;
 }
 
-.stButton>button:hover, .stDownloadButton>button:hover {
-    background: #0062D6 !important;
-    transform: translateY(-1px) !important;
+/* =========================================================
+   STRICT TAB OVERRIDE (DESTROYS RED THEME COLORS & HIGHLIGHT)
+   ========================================================= */
+
+/* 1. Bar Background & Segmented Pill Container */
+div[data-testid="stTabs"] {
+    background-color: transparent !important;
 }
 
-.stButton>button:active, .stDownloadButton>button:active {
-    transform: scale(0.98) !important;
-}
-
-/* ==========================================
-   APPLE IPAD NATIVE TABS (FORCE OVERRIDE)
-   ========================================== */
-/* Tab List Container */
-div[data-testid="stTabs"] [role="tablist"] {
+div[data-testid="stTabs"] > div:first-child {
     background-color: rgba(118, 118, 128, 0.12) !important;
     border-radius: 14px !important;
     padding: 4px !important;
-    gap: 6px !important;
     border: none !important;
     margin-bottom: 24px !important;
 }
 
-/* Inactive Tab Base Styling & Text */
-div[data-testid="stTabs"] button[role="tab"],
-div[data-testid="stTabs"] [data-baseweb="tab"] {
+/* 2. Target ALL Tab Buttons unconditionally */
+div[data-testid="stTabs"] button {
     background-color: transparent !important;
     border-radius: 10px !important;
     border: none !important;
-    padding: 10px 18px !important;
+    outline: none !important;
+    padding: 8px 16px !important;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    min-height: 40px !important;
 }
 
-/* Override all inner text/paragraph tags from defaulting to red */
-div[data-testid="stTabs"] button[role="tab"] *,
-div[data-testid="stTabs"] [data-baseweb="tab"] * {
+/* 3. Force Inactive Tab Text to Dark Grey */
+div[data-testid="stTabs"] button * {
     color: #1C1C1E !important;
     font-weight: 500 !important;
     font-size: 0.92rem !important;
 }
 
-/* Active Selected Tab Card */
-div[data-testid="stTabs"] button[role="tab"][aria-selected="true"],
-div[data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] {
+/* 4. Active Tab Background (White Card) */
+div[data-testid="stTabs"] button[aria-selected="true"] {
     background-color: #FFFFFF !important;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* Active Selected Tab Text Color (Blue instead of Red) */
-div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] *,
-div[data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] * {
+/* 5. Force Active Tab Text to Apple Blue (Kills Red) */
+div[data-testid="stTabs"] button[aria-selected="true"] * {
     color: #007AFF !important;
     font-weight: 600 !important;
 }
 
-/* Completely kill the red underline highlight bar and borders */
+/* 6. Destroy ALL Red Border/Highlight Lines Everywhere */
+div[data-testid="stTabs"] *::after,
+div[data-testid="stTabs"] *::before,
 div[data-testid="stTabs"] [data-baseweb="tab-highlight"],
-div[data-testid="stTabs"] [data-baseweb="tab-border"],
-div[data-testid="stTabs"] [role="tablist"]::after,
-div[data-testid="stTabs"] button[role="tab"]::after {
+div[data-testid="stTabs"] [data-baseweb="tab-border"] {
     display: none !important;
+    opacity: 0 !important;
+    background: transparent !important;
     background-color: transparent !important;
-    height: 0px !important;
     border: none !important;
+    height: 0px !important;
+    width: 0px !important;
 }
 </style>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True), unsafe_allow_html=True)
 
 # 1. API Initialization
 if "GEMINI_API_KEY" in st.secrets:
