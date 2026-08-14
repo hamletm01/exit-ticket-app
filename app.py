@@ -621,13 +621,16 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         </div>
         """, unsafe_allow_html=True)
     else:
-       selected_tab = st.radio(
+        # iPad Native Segmented Control Bar
+        selected_tab = st.radio(
             "Teacher Studio Navigation",
             ["📝 Ticket Authoring", "📊 Class Analytics & AI Insights", "🔄 Mastery Loop Registry"],
             key="teacher_studio_menu",
             horizontal=True,
             label_visibility="collapsed"
         )
+
+        st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 
         # ------------------------------------------
         # TAB 1: CURRICULUM AUTHORING
