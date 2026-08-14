@@ -5,6 +5,7 @@ import docx
 import pandas as pd
 import json
 import re
+import os
 from datetime import datetime
 
 # Page Configuration
@@ -16,31 +17,75 @@ st.set_page_config(
 )
 
 # ==========================================
+# SHARED PERSISTENT DATABASE ENGINE (db.json)
+# ==========================================
+DB_FILE = "db.json"
+
+DEFAULT_DB = {
+    "courses": ["Earth Science", "Environmental Studies", "AP Biology", "Physics 101"],
+    "course_periods": {
+        "Earth Science": ["Period 1 - Oct 12", "Period 2 - Oct 12", "Period 1 - Oct 14"],
+        "Environmental Studies": ["Period 3 - Oct 12", "Period 3 - Oct 14"],
+        "AP Biology": ["Period 4 - Oct 11"],
+        "Physics 101": ["Period 6 - Oct 11"]
+    },
+    "session_tickets": {},
+    "student_results": {},
+    "student_misconceptions": {},
+    "ticket_library": {}
+}
+
+def load_db():
+    if not os.path.exists(DB_FILE):
+        save_db(DEFAULT_DB)
+        return DEFAULT_DB
+    try:
+        with open(DB_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return DEFAULT_DB
+
+def save_db(data):
+    with open(DB_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+
+# Load global database into memory for this request
+db = load_db()
+
+# Sync DB list defaults if empty
+if not db.get("courses"):
+    db["courses"] = DEFAULT_DB["courses"]
+if not db.get("course_periods"):
+    db["course_periods"] = DEFAULT_DB["course_periods"]
+
+# Initialize Active Selection in local session
+if "active_course" not in st.session_state or st.session_state.active_course not in db["courses"]:
+    st.session_state.active_course = db["courses"][0]
+
+available_p = db["course_periods"].get(st.session_state.active_course, ["Period 1"])
+if "active_period" not in st.session_state or st.session_state.active_period not in available_p:
+    st.session_state.active_period = available_p[0]
+
+if "teacher_authenticated" not in st.session_state:
+    st.session_state.teacher_authenticated = False
+
+# ==========================================
 # APPLE HUMAN INTERFACE DESIGN (HIG) SYSTEM
 # ==========================================
 st.markdown("""
 <style>
-/* Import Inter / SF Pro Fallback */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* Global Reset to Apple Typography Stack */
 html, body, [class*="css"] {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", "Helvetica Neue", sans-serif !important;
     background-color: #F2F2F7 !important;
     color: #1C1C1E;
 }
 
-.stApp {
-    background-color: #F2F2F7 !important;
-}
-
-/* Hide Default Streamlit Chrome */
+.stApp { background-color: #F2F2F7 !important; }
 header[data-testid="stHeader"] { background: transparent !important; }
 footer { visibility: hidden; }
 
-/* ==========================================
-   APPLE IPAD SIDEBAR / CONTROL CENTER
-   ========================================== */
 section[data-testid="stSidebar"] {
     background-color: rgba(242, 242, 247, 0.75) !important;
     backdrop-filter: blur(40px) saturate(190%) !important;
@@ -49,15 +94,6 @@ section[data-testid="stSidebar"] {
     padding-top: 1rem !important;
 }
 
-section[data-testid="stSidebar"] div[data-testid="stColumn"] > div {
-    background: transparent !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    border: none !important;
-}
-
-/* Custom iOS Segmented Control for Radio */
 div[data-testid="stRadio"] > div {
     background: rgba(120, 120, 128, 0.12) !important;
     border-radius: 12px !important;
@@ -86,7 +122,6 @@ div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
 
 div[data-testid="stRadio"] input[type="radio"] { display: none !important; }
 
-/* Apple Hero Banners */
 .ios-hero-student {
     background: linear-gradient(135deg, #007AFF 0%, #0051A8 100%);
     border-radius: 22px;
@@ -120,7 +155,6 @@ div[data-testid="stRadio"] input[type="radio"] { display: none !important; }
     font-weight: 400 !important;
 }
 
-/* iOS Cards */
 section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-container {
     background: #FFFFFF !important;
     border-radius: 20px !important;
@@ -130,7 +164,6 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     overflow: hidden !important;
 }
 
-/* iOS Badges */
 .ios-badge {
     display: inline-block;
     padding: 5px 14px;
@@ -145,7 +178,6 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
 .ios-badge-green { background: rgba(52, 199, 89, 0.15); color: #28CD41; }
 .ios-badge-purple { background: rgba(175, 82, 222, 0.15); color: #AF52DE; }
 .ios-badge-orange { background: rgba(255, 149, 0, 0.15); color: #FF9500; }
-.ios-badge-red { background: rgba(255, 59, 48, 0.15); color: #FF3B30; }
 
 .ios-single-qbox {
     background: #F8F9FA;
@@ -178,7 +210,6 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
 }
 
-/* Form Controls & Inputs */
 .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div {
     background-color: #F2F2F7 !important;
     border: 1px solid rgba(0, 0, 0, 0.08) !important;
@@ -186,12 +217,6 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     padding: 10px 14px !important;
     font-size: 0.95rem !important;
     color: #1C1C1E !important;
-}
-
-.stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
-    background-color: #FFFFFF !important;
-    border-color: #007AFF !important;
-    box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.18) !important;
 }
 
 .stButton>button, .stDownloadButton>button {
@@ -205,16 +230,8 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     box-shadow: 0 4px 14px rgba(0, 122, 255, 0.28) !important;
     transition: all 0.2s ease !important;
     width: 100% !important;
-    white-space: normal !important;
-    word-break: break-word !important;
-    line-height: 1.3 !important;
-    height: auto !important;
-    min-height: 44px !important;
 }
 
-/* ==========================================
-   IPAD NATIVE SEGMENTED CONTROL MENU
-   ========================================== */
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) > div {
     background-color: rgba(118, 118, 128, 0.16) !important;
     border-radius: 16px !important;
@@ -238,10 +255,6 @@ div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label {
     font-weight: 500 !important;
     font-size: 1rem !important;
     cursor: pointer !important;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    border: none !important;
-    margin: 0 !important;
-    text-align: center !important;
 }
 
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label:has(input:checked) {
@@ -249,10 +262,6 @@ div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label:has(inpu
     color: #007AFF !important;
     font-weight: 600 !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08) !important;
-}
-
-div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) input[type="radio"] {
-    display: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -267,59 +276,6 @@ else:
 
 MODEL_NAME = "gemini-3.6-flash"
 
-# ==========================================
-# HIERARCHICAL SESSION STATE INITIALIZATION
-# Tier 1: Courses (Max ~6)
-# Tier 2: Periods / Sessions per Course
-# ==========================================
-if "courses" not in st.session_state:
-    st.session_state.courses = [
-        "Earth Science", 
-        "Environmental Studies", 
-        "AP Biology", 
-        "Physics 101"
-    ]
-
-if "active_course" not in st.session_state:
-    st.session_state.active_course = "Earth Science"
-
-if "course_periods" not in st.session_state:
-    st.session_state.course_periods = {
-        "Earth Science": ["Period 1 - Oct 12", "Period 2 - Oct 12", "Period 1 - Oct 14"],
-        "Environmental Studies": ["Period 3 - Oct 12", "Period 3 - Oct 14"],
-        "AP Biology": ["Period 4 - Oct 11"],
-        "Physics 101": ["Period 6 - Oct 11"]
-    }
-
-if "active_period" not in st.session_state:
-    st.session_state.active_period = "Period 1 - Oct 14"
-
-if "teacher_authenticated" not in st.session_state:
-    st.session_state.teacher_authenticated = False
-
-# Active Tickets Indexed by Session Key: "Course::Period"
-if "session_tickets" not in st.session_state:
-    st.session_state.session_tickets = {
-        "Earth Science::Period 1 - Oct 14": {
-            "title": "Water Cycle & Climate Dynamics",
-            "questions": "1. Explain the process of evapotranspiration in your own words.\n2. How does the urban heat island effect impact localized weather conditions?\n3. Describe two primary environmental factors that drive atmospheric circulation."
-        },
-        "Environmental Studies::Period 3 - Oct 14": {
-            "title": "Photosynthesis Basics",
-            "questions": "1. What is the overall chemical equation for photosynthesis?\n2. What specific role does chlorophyll play in light absorption?\n3. How do plant stomata regulate gas exchange during high temperatures?"
-        }
-    }
-
-if "student_results" not in st.session_state:
-    st.session_state.student_results = {}
-
-if "student_misconceptions" not in st.session_state:
-    st.session_state.student_misconceptions = {}
-
-if "ticket_library" not in st.session_state:
-    st.session_state.ticket_library = {}
-
-# Helper Functions
 def parse_questions(raw_text):
     if not raw_text:
         return []
@@ -355,7 +311,7 @@ def extract_text(file):
     return text
 
 # ==========================================
-# SIDEBAR: CASCADING 2-TIER SELECTOR
+# SIDEBAR: PERSISTENT CASCADING SELECTOR
 # ==========================================
 with st.sidebar:
     st.markdown("""
@@ -365,41 +321,35 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    # Tier 1: Select Course
     st.markdown("<div style='font-size: 0.78rem; font-weight: 600; color: #8E8E93; margin: 6px 0 2px 0; text-transform: uppercase;'>1. Select Course</div>", unsafe_allow_html=True)
+    
+    course_list = db.get("courses", [])
     selected_course = st.selectbox(
         "Course:",
-        options=st.session_state.courses,
-        index=st.session_state.courses.index(st.session_state.active_course) if st.session_state.active_course in st.session_state.courses else 0,
+        options=course_list,
+        index=course_list.index(st.session_state.active_course) if st.session_state.active_course in course_list else 0,
         label_visibility="collapsed"
     )
     st.session_state.active_course = selected_course
 
-    # Tier 2: Select Period (Cascading filter based on Tier 1)
-    available_periods = st.session_state.course_periods.get(selected_course, [])
+    periods_list = db.get("course_periods", {}).get(selected_course, ["Period 1"])
     
     st.markdown("<div style='font-size: 0.78rem; font-weight: 600; color: #8E8E93; margin: 10px 0 2px 0; text-transform: uppercase;'>2. Select Period / Session</div>", unsafe_allow_html=True)
     
-    if available_periods:
-        current_period_idx = available_periods.index(st.session_state.active_period) if st.session_state.active_period in available_periods else 0
-        selected_period = st.selectbox(
-            "Period:",
-            options=available_periods,
-            index=current_period_idx,
-            label_visibility="collapsed"
-        )
-        st.session_state.active_period = selected_period
-    else:
-        st.info("No periods created for this course yet.")
-        selected_period = "Default Period"
-        st.session_state.active_period = selected_period
+    current_p_idx = periods_list.index(st.session_state.active_period) if st.session_state.active_period in periods_list else 0
+    selected_period = st.selectbox(
+        "Period:",
+        options=periods_list,
+        index=current_p_idx,
+        label_visibility="collapsed"
+    )
+    st.session_state.active_period = selected_period
 
     st.markdown("<div style='font-size: 0.78rem; font-weight: 600; color: #8E8E93; margin: 12px 0 6px 0; text-transform: uppercase;'>Portal Mode</div>", unsafe_allow_html=True)
     app_mode = st.radio("Select View:", ["🎓 Student Portal", "👨‍🏫 Teacher Studio"], label_visibility="collapsed")
     
     if app_mode == "👨‍🏫 Teacher Studio":
         st.markdown("<div style='margin-top:20px;'><span class='ios-badge ios-badge-purple'>STUDIO ACCESS</span></div>", unsafe_allow_html=True)
-        
         TEACHER_PIN = st.secrets.get("TEACHER_PIN", "1234")
         pin_input = st.text_input("Teacher Passcode:", type="password", placeholder="••••")
         
@@ -415,9 +365,9 @@ with st.sidebar:
                 st.session_state.teacher_authenticated = False
                 st.rerun()
 
-# Build Composite Session Key
+# Composite Session Lookup Key
 session_key = f"{st.session_state.active_course}::{st.session_state.active_period}"
-curr_ticket = st.session_state.session_tickets.get(session_key, {"title": "General Unit", "questions": ""})
+curr_ticket = db.get("session_tickets", {}).get(session_key, {"title": "No Published Ticket", "questions": ""})
 
 # ==========================================
 # VIEW 1: STUDENT PORTAL
@@ -435,7 +385,7 @@ if app_mode == "🎓 Student Portal":
         <div class="ios-card-container" style="text-align: center; padding: 48px 24px;">
             <div style="font-size: 3rem; margin-bottom: 12px;">⏳</div>
             <h3 style="font-weight: 700; color: #1C1C1E; margin-bottom: 8px;">Waiting for Active Ticket</h3>
-            <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Your teacher hasn't published an exit ticket for this period yet. Please check back shortly!</p>
+            <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Your teacher hasn't published an exit ticket for this period yet. Please verify your selected Course/Period in the sidebar or check back shortly!</p>
         </div>
         """, unsafe_allow_html=True)
     else:
@@ -446,8 +396,7 @@ if app_mode == "🎓 Student Portal":
             base_questions = parse_questions(curr_ticket['questions'])
             mastery_question = None
             
-            # Fetch gaps for active session
-            class_gaps = st.session_state.student_misconceptions.get(session_key, {}).get(clean_name, [])
+            class_gaps = db.get("student_misconceptions", {}).get(session_key, {}).get(clean_name, [])
             unresolved_gaps = [gap for gap in class_gaps if not gap.get("resolved", False)]
             
             if unresolved_gaps:
@@ -526,9 +475,9 @@ if app_mode == "🎓 Student Portal":
                                 "correct_aspects": "Encouraging summary of what they answered correctly.",
                                 "incorrect_aspects": "Clear breakdown of what was incorrect or missing in their answers.",
                                 "revision_topics": ["Specific concept 1 to review", "Specific concept 2 to review"],
-                                "teacher_clarification_question": "A single specific, well-formulated question the student should ask their teacher next lesson to resolve their confusion.",
+                                "teacher_clarification_question": "A single specific question the student should ask their teacher next lesson.",
                                 "has_misconception": true/false,
-                                "misconception_summary": "Short 1-sentence summary of their key error/misconception if any, or null if all correct."
+                                "misconception_summary": "Short 1-sentence summary of key error if any, or null if all correct."
                             }}
                             """
                             
@@ -551,17 +500,20 @@ if app_mode == "🎓 Student Portal":
                                     "misconception_summary": None
                                 }
                             
-                            if session_key not in st.session_state.student_misconceptions:
-                                st.session_state.student_misconceptions[session_key] = {}
-                            if clean_name not in st.session_state.student_misconceptions[session_key]:
-                                st.session_state.student_misconceptions[session_key][clean_name] = []
+                            # Reload DB to append new student data safely
+                            fresh_db = load_db()
+                            
+                            if session_key not in fresh_db["student_misconceptions"]:
+                                fresh_db["student_misconceptions"][session_key] = {}
+                            if clean_name not in fresh_db["student_misconceptions"][session_key]:
+                                fresh_db["student_misconceptions"][session_key][clean_name] = []
                                 
                             if mastery_question and not result_json.get("has_misconception", False):
-                                for gap in st.session_state.student_misconceptions[session_key][clean_name]:
+                                for gap in fresh_db["student_misconceptions"][session_key][clean_name]:
                                     gap["resolved"] = True
                             
                             if result_json.get("has_misconception") and result_json.get("misconception_summary"):
-                                st.session_state.student_misconceptions[session_key][clean_name].append({
+                                fresh_db["student_misconceptions"][session_key][clean_name].append({
                                     "lesson": curr_ticket['title'],
                                     "misconception": result_json["misconception_summary"],
                                     "resolved": False
@@ -575,9 +527,11 @@ if app_mode == "🎓 Student Portal":
                                 "Full Feedback": response.text
                             }
                             
-                            if session_key not in st.session_state.student_results:
-                                st.session_state.student_results[session_key] = []
-                            st.session_state.student_results[session_key].append(res_entry)
+                            if session_key not in fresh_db["student_results"]:
+                                fresh_db["student_results"][session_key] = []
+                            fresh_db["student_results"][session_key].append(res_entry)
+                            
+                            save_db(fresh_db)
                             
                             st.markdown(f"""
                             <div class="ios-feedback-card">
@@ -627,7 +581,6 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         </div>
         """, unsafe_allow_html=True)
     else:
-        # iPad Native Segmented Pill Control Bar
         selected_tab = st.radio(
             "Teacher Studio Navigation",
             ["📝 Ticket Authoring", "📊 Class Analytics & AI Insights", "🔄 Mastery Loop Registry"],
@@ -638,24 +591,23 @@ elif app_mode == "👨‍🏫 Teacher Studio":
 
         st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 
-        # ------------------------------------------
-        # TAB 1: CURRICULUM AUTHORING & PERIOD BUILDER
-        # ------------------------------------------
+        # TAB 1: AUTHORING
         if selected_tab == "📝 Ticket Authoring":
-            
-            # Quick Period & Course Management Expanders
             c1, c2 = st.columns(2)
             with c1:
                 with st.expander("➕ Add New Course / Class"):
                     new_course_input = st.text_input("New Course Name:", placeholder="e.g. AP Chemistry")
                     if st.button("Add Course 📚"):
-                        if new_course_input and new_course_input not in st.session_state.courses:
-                            st.session_state.courses.append(new_course_input)
-                            st.session_state.course_periods[new_course_input] = ["Period 1"]
-                            st.session_state.active_course = new_course_input
-                            st.session_state.active_period = "Period 1"
-                            st.success(f"Course '{new_course_input}' created!")
-                            st.rerun()
+                        if new_course_input:
+                            fresh_db = load_db()
+                            if new_course_input not in fresh_db["courses"]:
+                                fresh_db["courses"].append(new_course_input)
+                                fresh_db["course_periods"][new_course_input] = ["Period 1"]
+                                save_db(fresh_db)
+                                st.session_state.active_course = new_course_input
+                                st.session_state.active_period = "Period 1"
+                                st.success(f"Course '{new_course_input}' created & saved globally!")
+                                st.rerun()
 
             with c2:
                 with st.expander(f"➕ Create Session/Period for {st.session_state.active_course}"):
@@ -664,11 +616,15 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                     new_period_key = f"{p_num} - {p_date.strftime('%b %d')}"
                     
                     if st.button("Initialize New Session 🚀"):
+                        fresh_db = load_db()
                         active_crs = st.session_state.active_course
-                        if new_period_key not in st.session_state.course_periods[active_crs]:
-                            st.session_state.course_periods[active_crs].append(new_period_key)
+                        if active_crs not in fresh_db["course_periods"]:
+                            fresh_db["course_periods"][active_crs] = []
+                        if new_period_key not in fresh_db["course_periods"][active_crs]:
+                            fresh_db["course_periods"][active_crs].append(new_period_key)
+                            save_db(fresh_db)
                             st.session_state.active_period = new_period_key
-                            st.success(f"Created session: {new_period_key}")
+                            st.success(f"Created & saved session: {new_period_key}")
                             st.rerun()
 
             col_left, col_right = st.columns([1, 1], gap="large")
@@ -676,7 +632,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                 st.markdown("<span class='ios-badge ios-badge-blue'>CURRICULUM AUTHORING</span>", unsafe_allow_html=True)
                 st.markdown(f"### Create Ticket for {st.session_state.active_period}")
                 
-                lesson_title = st.text_input("Lesson Title / Unit Topic:", value=curr_ticket['title'])
+                lesson_title = st.text_input("Lesson Title / Unit Topic:", value=curr_ticket.get('title', ''))
                 uploaded_file = st.file_uploader("Upload Lesson Content (PDF, DOCX, TXT):", type=["pdf", "docx", "txt"])
                 raw_notes = st.text_area("Or Paste Syllabus Notes / Outline:", height=110, placeholder="Paste lesson objectives, key facts, or syllabus points...")
                 
@@ -698,11 +654,14 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                             {combined_text[:4000]}
                             """
                             ticket_res = client.models.generate_content(model=MODEL_NAME, contents=gen_prompt)
-                            st.session_state.session_tickets[session_key] = {
-                                "title": lesson_title,
+                            
+                            fresh_db = load_db()
+                            fresh_db["session_tickets"][session_key] = {
+                                "title": lesson_title if lesson_title else "Unit Check-in",
                                 "questions": ticket_res.text
                             }
-                            st.success(f"Exit Ticket Published for {st.session_state.active_period}!")
+                            save_db(fresh_db)
+                            st.success(f"Exit Ticket Published Globally for {st.session_state.active_period}!")
                             st.rerun()
                     else:
                         st.error("Please upload a file or paste syllabus text first.")
@@ -711,56 +670,52 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                 st.markdown("<span class='ios-badge ios-badge-orange'>TICKET LIBRARY</span>", unsafe_allow_html=True)
                 st.markdown("### 💾 Saved Ticket Manager")
                 
-                if curr_ticket['questions']:
+                if curr_ticket.get('questions'):
                     if st.button("💾 Save Active Ticket to Library"):
-                        st.session_state.ticket_library[curr_ticket['title']] = curr_ticket['questions']
-                        st.success(f"Saved '{curr_ticket['title']}' to Library!")
+                        fresh_db = load_db()
+                        fresh_db["ticket_library"][curr_ticket['title']] = curr_ticket['questions']
+                        save_db(fresh_db)
+                        st.success(f"Saved '{curr_ticket['title']}' to Global Library!")
                 
-                if st.session_state.ticket_library:
-                    selected_ticket = st.selectbox(
-                        "Load saved ticket into active period:",
-                        options=list(st.session_state.ticket_library.keys())
-                    )
-                    
+                saved_tickets = db.get("ticket_library", {})
+                if saved_tickets:
+                    selected_ticket = st.selectbox("Load saved ticket into active period:", options=list(saved_tickets.keys()))
                     if st.button("📂 Load Selected Ticket"):
-                        st.session_state.session_tickets[session_key] = {
+                        fresh_db = load_db()
+                        fresh_db["session_tickets"][session_key] = {
                             "title": selected_ticket,
-                            "questions": st.session_state.ticket_library[selected_ticket]
+                            "questions": saved_tickets[selected_ticket]
                         }
+                        save_db(fresh_db)
                         st.success(f"Loaded '{selected_ticket}' into {st.session_state.active_period}!")
                         st.rerun()
 
-        # ------------------------------------------
-        # TAB 2: CLASS ANALYTICS & AI INSIGHTS
-        # ------------------------------------------
+        # TAB 2: ANALYTICS
         elif selected_tab == "📊 Class Analytics & AI Insights":
             st.markdown("<span class='ios-badge ios-badge-green'>REAL-TIME CLASS DIAGNOSTICS</span>", unsafe_allow_html=True)
             
-            session_data = st.session_state.student_results.get(session_key, [])
+            # Read directly from DB to get student submissions live
+            fresh_db = load_db()
+            session_data = fresh_db.get("student_results", {}).get(session_key, [])
             
             if not session_data:
                 st.info(f"💡 No student submissions recorded for **{st.session_state.active_course} ({st.session_state.active_period})** yet.")
             else:
                 df_results = pd.DataFrame(session_data)
                 
-                # Metrics Bar
                 m1, m2, m3, m4 = st.columns(4)
-                total_submissions = len(df_results)
-                misconception_count = sum(1 for r in session_data if r.get("Misconception Summary") != "None")
-                
-                m1.metric("Total Submissions", total_submissions)
-                m2.metric("Active Misconceptions", misconception_count)
-                m3.metric("Current Unit", curr_ticket['title'][:18] + "...")
-                m4.metric("System Health", "Optimal 🟢")
+                m1.metric("Total Submissions", len(df_results))
+                m2.metric("Active Misconceptions", sum(1 for r in session_data if r.get("Misconception Summary") != "None"))
+                m3.metric("Current Unit", curr_ticket.get('title', 'N/A')[:18] + "...")
+                m4.metric("Database Sync", "Live 🟢")
                 
                 st.markdown("---")
                 
-                # Class Synthesis Generator
                 st.markdown(f"### 🤖 AI Synthesis for {st.session_state.active_period}")
                 if st.button("Generate Class Analysis & Intervention Plan 💡"):
                     with st.spinner("Analyzing whole-class trends..."):
                         synthesis_prompt = f"""
-                        You are an expert instructional coach. Review these exit ticket results for the lesson "{curr_ticket['title']}" in class "{session_key}":
+                        You are an expert instructional coach. Review these exit ticket results for the lesson "{curr_ticket.get('title')}" in class "{session_key}":
                         
                         Data:
                         {json.dumps(session_data)}
@@ -776,14 +731,13 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                 st.markdown("### 📋 Student Submissions Table")
                 st.dataframe(df_results[["Timestamp", "Student ID", "Score", "Misconception Summary"]], use_container_width=True)
 
-        # ------------------------------------------
-        # TAB 3: MASTERY LOOP REGISTRY
-        # ------------------------------------------
+        # TAB 3: MASTERY LOOP
         elif selected_tab == "🔄 Mastery Loop Registry":
             st.markdown("<span class='ios-badge ios-badge-purple'>MASTERY LOOP REGISTRY</span>", unsafe_allow_html=True)
             st.markdown(f"### Student Misconceptions ({st.session_state.active_course} - {st.session_state.active_period})")
             
-            session_gaps = st.session_state.student_misconceptions.get(session_key, {})
+            fresh_db = load_db()
+            session_gaps = fresh_db.get("student_misconceptions", {}).get(session_key, {})
             
             if not session_gaps or not any(gaps for gaps in session_gaps.values()):
                 st.info(f"No misconceptions tracked for **{session_key}** yet.")
