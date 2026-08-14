@@ -226,9 +226,10 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
 }
 
 /* ==========================================
-   APPLE IPAD NATIVE TABS (SEGMENTED CONTROL)
+   APPLE IPAD NATIVE TABS (FORCE OVERRIDE)
    ========================================== */
-div[data-testid="stTabs"] > div[role="tablist"] {
+/* Tab List Container */
+div[data-testid="stTabs"] [role="tablist"] {
     background-color: rgba(118, 118, 128, 0.12) !important;
     border-radius: 14px !important;
     padding: 4px !important;
@@ -237,34 +238,48 @@ div[data-testid="stTabs"] > div[role="tablist"] {
     margin-bottom: 24px !important;
 }
 
-div[data-testid="stTabs"] button[role="tab"] {
+/* Inactive Tab Base Styling & Text */
+div[data-testid="stTabs"] button[role="tab"],
+div[data-testid="stTabs"] [data-baseweb="tab"] {
     background-color: transparent !important;
     border-radius: 10px !important;
     border: none !important;
-    color: #1C1C1E !important;
-    font-weight: 500 !important;
-    font-size: 0.92rem !important;
     padding: 10px 18px !important;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
     min-height: 40px !important;
 }
 
-div[data-testid="stTabs"] button[role="tab"]:hover {
-    background-color: rgba(255, 255, 255, 0.5) !important;
+/* Override all inner text/paragraph tags from defaulting to red */
+div[data-testid="stTabs"] button[role="tab"] *,
+div[data-testid="stTabs"] [data-baseweb="tab"] * {
+    color: #1C1C1E !important;
+    font-weight: 500 !important;
+    font-size: 0.92rem !important;
 }
 
-div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+/* Active Selected Tab Card */
+div[data-testid="stTabs"] button[role="tab"][aria-selected="true"],
+div[data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] {
     background-color: #FFFFFF !important;
-    color: #007AFF !important;
-    font-weight: 600 !important;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08) !important;
 }
 
-div[data-testid="stTabs"] button[role="tab"] > div[data-testid="stMarkdownContainer"] {
-    border-bottom: none !important;
+/* Active Selected Tab Text Color (Blue instead of Red) */
+div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] *,
+div[data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] * {
+    color: #007AFF !important;
+    font-weight: 600 !important;
 }
-div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] {
+
+/* Completely kill the red underline highlight bar and borders */
+div[data-testid="stTabs"] [data-baseweb="tab-highlight"],
+div[data-testid="stTabs"] [data-baseweb="tab-border"],
+div[data-testid="stTabs"] [role="tablist"]::after,
+div[data-testid="stTabs"] button[role="tab"]::after {
     display: none !important;
+    background-color: transparent !important;
+    height: 0px !important;
+    border: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
