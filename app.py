@@ -6,6 +6,7 @@ import pandas as pd
 import json
 import re
 import os
+import requests
 from datetime import datetime
 
 # Page Configuration
@@ -17,9 +18,10 @@ st.set_page_config(
 )
 
 # ==========================================
-# SHARED PERSISTENT DATABASE ENGINE (db.json)
+# SHARED PERSISTENT DATABASE ENGINE (JSONBin API)
 # ==========================================
-DB_FILE = "db.json"
+JSONBIN_API_KEY = st.secrets.get("JSONBIN_API_KEY", "")
+JSONBIN_BIN_ID = st.secrets.get("JSONBIN_BIN_ID", "")
 
 DEFAULT_DB = {
     "courses": ["Earth Science", "Environmental Studies", "AP Biology", "Physics 101"],
@@ -36,18 +38,34 @@ DEFAULT_DB = {
 }
 
 def load_db():
-    if not os.path.exists(DB_FILE):
-        save_db(DEFAULT_DB)
+    if not JSONBIN_API_KEY or not JSONBIN_BIN_ID:
         return DEFAULT_DB
+    
+    headers = {"X-Master-Key": JSONBIN_API_KEY}
+    url = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}/latest"
+    
     try:
-        with open(DB_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+        response = requests.get(url, headers=headers, timeout=5)
+        if response.status_code == 200:
+            return response.json()["record"]
+        return DEFAULT_DB
     except Exception:
         return DEFAULT_DB
 
 def save_db(data):
-    with open(DB_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
+    if not JSONBIN_API_KEY or not JSONBIN_BIN_ID:
+        return
+        
+    headers = {
+        "Content-Type": "application/json",
+        "X-Master-Key": JSONBIN_API_KEY
+    }
+    url = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}"
+    
+    try:
+        requests.put(url, headers=headers, json=data, timeout=5)
+    except Exception as e:
+        st.error(f"Error saving data to cloud database: {e}")
 
 # Load global database into memory for this request
 db = load_db()
