@@ -182,15 +182,6 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     overflow: hidden !important;
 }
 
-.scope-container {
-    background: #FFFFFF;
-    border-radius: 18px;
-    padding: 16px 20px;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.02);
-    margin-bottom: 20px;
-}
-
 .ios-badge {
     display: inline-block;
     padding: 5px 14px;
@@ -368,36 +359,31 @@ with st.sidebar:
                 st.session_state.teacher_authenticated = False
                 st.rerun()
 
-# ==========================================
-# MAIN WORKSPACE HEADER: COURSE & PERIOD SELECTOR
-# ==========================================
-st.markdown("<div class='scope-container'>", unsafe_allow_html=True)
-c_sel_1, c_sel_2 = st.columns(2)
-
-with c_sel_1:
-    course_list = db.get("courses", [])
-    selected_course = st.selectbox(
-        "📚 Active Course",
-        options=course_list,
-        index=course_list.index(st.session_state.active_course) if st.session_state.active_course in course_list else 0
-    )
-    st.session_state.active_course = selected_course
-
-with c_sel_2:
-    periods_list = db.get("course_periods", {}).get(selected_course, ["Period 1"])
-    current_p_idx = periods_list.index(st.session_state.active_period) if st.session_state.active_period in periods_list else 0
-    selected_period = st.selectbox(
-        "📅 Active Period / Session",
-        options=periods_list,
-        index=current_p_idx
-    )
-    st.session_state.active_period = selected_period
-
-st.markdown("</div>", unsafe_allow_html=True)
-
 # Composite Session Lookup Key
 session_key = f"{st.session_state.active_course}::{st.session_state.active_period}"
 curr_ticket = db.get("session_tickets", {}).get(session_key, {"title": "No Published Ticket", "questions": ""})
+
+# Helper function to render Course/Period dropdowns below hero banners
+def render_scope_selectors():
+    c_sel_1, c_sel_2 = st.columns(2)
+    with c_sel_1:
+        course_list = db.get("courses", [])
+        selected_course = st.selectbox(
+            "📚 Active Course",
+            options=course_list,
+            index=course_list.index(st.session_state.active_course) if st.session_state.active_course in course_list else 0
+        )
+        st.session_state.active_course = selected_course
+
+    with c_sel_2:
+        periods_list = db.get("course_periods", {}).get(selected_course, ["Period 1"])
+        current_p_idx = periods_list.index(st.session_state.active_period) if st.session_state.active_period in periods_list else 0
+        selected_period = st.selectbox(
+            "📅 Active Period / Session",
+            options=periods_list,
+            index=current_p_idx
+        )
+        st.session_state.active_period = selected_period
 
 # ==========================================
 # VIEW 1: STUDENT PORTAL
@@ -406,9 +392,12 @@ if app_mode == "🎓 Student Portal":
     st.markdown(f"""
     <div class="ios-hero-student">
         <h1>🎓 Lesson Exit Ticket</h1>
-        <p><strong>{st.session_state.active_course}</strong> | {st.session_state.active_period} | Topic: {curr_ticket['title']}</p>
+        <p>Topic: <strong>{curr_ticket['title']}</strong></p>
     </div>
     """, unsafe_allow_html=True)
+    
+    render_scope_selectors()
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
     
     if not curr_ticket['questions']:
         st.markdown("""
@@ -601,9 +590,12 @@ elif app_mode == "👨‍🏫 Teacher Studio":
     st.markdown(f"""
     <div class="ios-hero-teacher">
         <h1>👨‍🏫 Teacher Studio & Analytics</h1>
-        <p>Active Scope: <strong>{st.session_state.active_course}</strong> → <strong>{st.session_state.active_period}</strong></p>
+        <p>Curriculum Design & Live Learning Diagnostics</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    render_scope_selectors()
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
     
     if not st.session_state.teacher_authenticated:
         st.markdown("""
