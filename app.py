@@ -143,31 +143,31 @@ div[data-testid="stRadio"] input[type="radio"] { display: none !important; }
 .ios-hero-student {
     background: linear-gradient(135deg, #007AFF 0%, #0051A8 100%);
     border-radius: 22px;
-    padding: 30px 36px;
+    padding: 24px 30px;
     color: #FFFFFF;
     box-shadow: 0 12px 28px rgba(0, 122, 255, 0.25);
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .ios-hero-teacher {
     background: linear-gradient(135deg, #5856D6 0%, #AF52DE 100%);
     border-radius: 22px;
-    padding: 30px 36px;
+    padding: 24px 30px;
     color: #FFFFFF;
     box-shadow: 0 12px 28px rgba(175, 82, 222, 0.25);
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .ios-hero-student h1, .ios-hero-teacher h1 {
-    font-size: 2.2rem !important;
+    font-size: 2.1rem !important;
     font-weight: 700 !important;
     letter-spacing: -0.5px !important;
     color: #FFFFFF !important;
-    margin: 0 0 6px 0 !important;
+    margin: 0 0 4px 0 !important;
 }
 
 .ios-hero-student p, .ios-hero-teacher p {
-    font-size: 1.05rem !important;
+    font-size: 1rem !important;
     opacity: 0.92 !important;
     margin: 0 !important;
     font-weight: 400 !important;
@@ -180,6 +180,15 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
     border: 1px solid rgba(0, 0, 0, 0.06) !important;
     overflow: hidden !important;
+}
+
+.scope-container {
+    background: #FFFFFF;
+    border-radius: 18px;
+    padding: 16px 20px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.02);
+    margin-bottom: 20px;
 }
 
 .ios-badge {
@@ -329,7 +338,7 @@ def extract_text(file):
     return text
 
 # ==========================================
-# SIDEBAR: PERSISTENT CASCADING SELECTOR
+# SIDEBAR: SYSTEM & ACCESS CONTROL ONLY
 # ==========================================
 with st.sidebar:
     st.markdown("""
@@ -339,30 +348,6 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<div style='font-size: 0.78rem; font-weight: 600; color: #8E8E93; margin: 6px 0 2px 0; text-transform: uppercase;'>1. Select Course</div>", unsafe_allow_html=True)
-    
-    course_list = db.get("courses", [])
-    selected_course = st.selectbox(
-        "Course:",
-        options=course_list,
-        index=course_list.index(st.session_state.active_course) if st.session_state.active_course in course_list else 0,
-        label_visibility="collapsed"
-    )
-    st.session_state.active_course = selected_course
-
-    periods_list = db.get("course_periods", {}).get(selected_course, ["Period 1"])
-    
-    st.markdown("<div style='font-size: 0.78rem; font-weight: 600; color: #8E8E93; margin: 10px 0 2px 0; text-transform: uppercase;'>2. Select Period / Session</div>", unsafe_allow_html=True)
-    
-    current_p_idx = periods_list.index(st.session_state.active_period) if st.session_state.active_period in periods_list else 0
-    selected_period = st.selectbox(
-        "Period:",
-        options=periods_list,
-        index=current_p_idx,
-        label_visibility="collapsed"
-    )
-    st.session_state.active_period = selected_period
-
     st.markdown("<div style='font-size: 0.78rem; font-weight: 600; color: #8E8E93; margin: 12px 0 6px 0; text-transform: uppercase;'>Portal Mode</div>", unsafe_allow_html=True)
     app_mode = st.radio("Select View:", ["🎓 Student Portal", "👨‍🏫 Teacher Studio"], label_visibility="collapsed")
     
@@ -382,6 +367,33 @@ with st.sidebar:
             if st.button("Lock Studio 🔒"):
                 st.session_state.teacher_authenticated = False
                 st.rerun()
+
+# ==========================================
+# MAIN WORKSPACE HEADER: COURSE & PERIOD SELECTOR
+# ==========================================
+st.markdown("<div class='scope-container'>", unsafe_allow_html=True)
+c_sel_1, c_sel_2 = st.columns(2)
+
+with c_sel_1:
+    course_list = db.get("courses", [])
+    selected_course = st.selectbox(
+        "📚 Active Course",
+        options=course_list,
+        index=course_list.index(st.session_state.active_course) if st.session_state.active_course in course_list else 0
+    )
+    st.session_state.active_course = selected_course
+
+with c_sel_2:
+    periods_list = db.get("course_periods", {}).get(selected_course, ["Period 1"])
+    current_p_idx = periods_list.index(st.session_state.active_period) if st.session_state.active_period in periods_list else 0
+    selected_period = st.selectbox(
+        "📅 Active Period / Session",
+        options=periods_list,
+        index=current_p_idx
+    )
+    st.session_state.active_period = selected_period
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 # Composite Session Lookup Key
 session_key = f"{st.session_state.active_course}::{st.session_state.active_period}"
@@ -403,7 +415,7 @@ if app_mode == "🎓 Student Portal":
         <div class="ios-card-container" style="text-align: center; padding: 48px 24px;">
             <div style="font-size: 3rem; margin-bottom: 12px;">⏳</div>
             <h3 style="font-weight: 700; color: #1C1C1E; margin-bottom: 8px;">Waiting for Active Ticket</h3>
-            <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Your teacher hasn't published an exit ticket for this period yet. Please verify your selected Course/Period in the sidebar or check back shortly!</p>
+            <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Your teacher hasn't published an exit ticket for this period yet. Please select another Course or Period from the options above!</p>
         </div>
         """, unsafe_allow_html=True)
     else:
@@ -598,7 +610,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         <div class="ios-card-container" style="text-align: center; padding: 48px 24px;">
             <div style="font-size: 3rem; margin-bottom: 12px;">🔒</div>
             <h3 style="font-weight: 700; color: #1C1C1E; margin-bottom: 8px;">Dashboard Protected</h3>
-            <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Please enter the Teacher Passcode in the Control Center to unlock lesson authoring and live student analytics.</p>
+            <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Please enter the Teacher Passcode in the Control Center (left sidebar) to unlock lesson authoring and live student analytics.</p>
         </div>
         """, unsafe_allow_html=True)
     else:
