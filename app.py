@@ -258,9 +258,7 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     width: 100% !important;
 }
 
-/* =========================================================
-   STRICT FULL-WIDTH CENTERED SEGMENTED CONTROL MENU (PILLS)
-   ========================================================= */
+/* STRICT FULL-WIDTH CENTERED SEGMENTED CONTROL MENU (PILLS) */
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) {
     width: 100% !important;
     max-width: 100% !important;
@@ -396,11 +394,7 @@ with st.sidebar:
                 st.session_state.teacher_authenticated = False
                 st.rerun()
 
-# Composite Session Lookup Key
-session_key = f"{st.session_state.active_course}::{st.session_state.active_period}"
-curr_ticket = db.get("session_tickets", {}).get(session_key, {"title": "No Published Ticket", "questions": ""})
-
-# Helper function to render Course/Period dropdowns below hero banners
+# Helper function to render Course/Period dropdowns
 def render_scope_selectors():
     c_sel_1, c_sel_2 = st.columns(2, gap="large")
     with c_sel_1:
@@ -422,10 +416,17 @@ def render_scope_selectors():
         )
         st.session_state.active_period = selected_period
 
+def get_current_ticket():
+    session_key = f"{st.session_state.active_course}::{st.session_state.active_period}"
+    return session_key, db.get("session_tickets", {}).get(session_key, {"title": "No Published Ticket", "questions": ""})
+
 # ==========================================
 # VIEW 1: STUDENT PORTAL
 # ==========================================
 if app_mode == "🎓 Student Portal":
+    render_scope_selectors()
+    session_key, curr_ticket = get_current_ticket()
+
     st.markdown(f"""
     <div class="ios-hero-student">
         <h1>🎓 Lesson Exit Ticket</h1>
@@ -433,7 +434,6 @@ if app_mode == "🎓 Student Portal":
     </div>
     """, unsafe_allow_html=True)
     
-    render_scope_selectors()
     st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
     
     if not curr_ticket['questions']:
@@ -556,7 +556,6 @@ if app_mode == "🎓 Student Portal":
                                     "misconception_summary": None
                                 }
                             
-                            # Reload DB to append new student data safely
                             fresh_db = load_db()
                             
                             if session_key not in fresh_db["student_misconceptions"]:
@@ -632,6 +631,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
     """, unsafe_allow_html=True)
     
     render_scope_selectors()
+    session_key, curr_ticket = get_current_ticket()
     
     st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
     
@@ -726,83 +726,70 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                                 "questions": ticket_res.text
                             }
                             save_db(fresh_db)
-                            st.success(f"Exit Ticket Published Globally for {st.session_state.active_period}!")
+                            st.success(f"Exit Ticket Published Globally for {session_key}!")
                             st.rerun()
                     else:
-                        st.error("Please upload a file or paste syllabus text first.")
+                        st.warning("⚠️ Please upload a file or paste syllabus notes before generating.")
 
             with col_right:
-                st.markdown("<span class='ios-badge ios-badge-orange'>TICKET LIBRARY</span>", unsafe_allow_html=True)
-                st.markdown("### 💾 Saved Ticket Manager")
-                
+                st.markdown("<span class='ios-badge ios-badge-purple'>LIVE PREVIEW</span>", unsafe_allow_html=True)
+                st.markdown(f"### Active Ticket Preview ({st.session_state.active_period})")
                 if curr_ticket.get('questions'):
-                    if st.button("💾 Save Active Ticket to Library"):
-                        fresh_db = load_db()
-                        fresh_db["ticket_library"][curr_ticket['title']] = curr_ticket['questions']
-                        save_db(fresh_db)
-                        st.success(f"Saved '{curr_ticket['title']}' to Global Library!")
-                
-                saved_tickets = db.get("ticket_library", {})
-                if saved_tickets:
-                    selected_lib_ticket = st.selectbox("Load Saved Ticket:", list(saved_tickets.keys()))
-                    if st.button("Deploy Saved Ticket to Active Period 🚀"):
-                        fresh_db = load_db()
-                        fresh_db["session_tickets"][session_key] = {
-                            "title": selected_lib_ticket,
-                            "questions": saved_tickets[selected_lib_ticket]
-                        }
-                        save_db(fresh_db)
-                        st.success(f"Deployed '{selected_lib_ticket}' to {st.session_state.active_period}!")
-                        st.rerun()
-
-        # TAB 2: ANALYTICS & INSIGHTS
-        elif selected_tab == "📊 Class Analytics & AI Insights":
-            st.markdown("<span class='ios-badge ios-badge-blue'>LIVE DIAGNOSTICS</span>", unsafe_allow_html=True)
-            st.markdown(f"### Student Submissions for {st.session_state.active_period}")
-
-            results = db.get("student_results", {}).get(session_key, [])
-
-            if not results:
-                st.info("No student responses recorded for this period yet.")
-            else:
-                df = pd.DataFrame(results)
-                st.dataframe(df[["Timestamp", "Student ID", "Score", "Misconception Summary"]], use_container_width=True)
-
-                if st.button("✨ Generate AI Class-Wide Insight Summary"):
-                    with st.spinner("Analyzing overall class misconceptions..."):
-                        all_summaries = "\n".join([f"- {r['Student ID']}: {r['Misconception Summary']}" for r in results if r.get('Misconception Summary')])
-                        insight_prompt = f"""
-                        Analyze these misconception summaries from a high school class exit ticket:
-                        {all_summaries}
-
-                        Provide a quick 3-bullet point executive summary for the teacher:
-                        1. Overall class understanding level
-                        2. Common recurring misconceptions
-                        3. Suggested 5-minute warm-up activity for next class
-                        """
-                        insight_res = client.models.generate_content(model=MODEL_NAME, contents=insight_prompt)
+                    st.markdown(f"**Topic:** {curr_ticket.get('title')}")
+                    q_list = parse_questions(curr_ticket.get('questions'))
+                    for idx, q in enumerate(q_list):
                         st.markdown(f"""
-                        <div class="ios-card-container" style="margin-top: 16px;">
-                            <h4 style="color: #007AFF;">🤖 Class-Wide AI Insights</h4>
-                            {insight_res.text}
+                        <div class="ios-single-qbox">
+                            <span style="color: #007AFF; font-weight: 700;">Q{idx+1}:</span> {q}
                         </div>
                         """, unsafe_allow_html=True)
+                else:
+                    st.info("No active ticket published yet for this section.")
 
-        # TAB 3: MASTERY LOOP REGISTRY
+        # TAB 2: ANALYTICS
+        elif selected_tab == "📊 Class Analytics & AI Insights":
+            st.markdown("<span class='ios-badge ios-badge-blue'>REAL-TIME DATA</span>", unsafe_allow_html=True)
+            st.markdown(f"### Student Submissions for {st.session_state.active_period}")
+            
+            results = db.get("student_results", {}).get(session_key, [])
+            if results:
+                df = pd.DataFrame(results)
+                st.dataframe(df[["Timestamp", "Student ID", "Score", "Misconception Summary"]], use_container_width=True)
+                
+                if st.button("Generate Class Misconception Summary 🤖"):
+                    with st.spinner("Analyzing overall class performance..."):
+                        summary_prompt = f"""
+                        Analyze these student exit ticket outcomes for section '{session_key}':
+                        {json.dumps(results)}
+                        
+                        Summarize overall class understanding, key recurring misconceptions, and suggest 2 targeted instructional actions for tomorrow's lesson.
+                        """
+                        ai_summary = client.models.generate_content(model=MODEL_NAME, contents=summary_prompt)
+                        st.markdown(f"""
+                        <div class="ios-feedback-card">
+                            <h4>🤖 AI Class Diagnostic Summary</h4>
+                            <p>{ai_summary.text}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+            else:
+                st.info("No student responses logged yet for this period.")
+
+        # TAB 3: MASTERY REGISTRY
         elif selected_tab == "🔄 Mastery Loop Registry":
-            st.markdown("<span class='ios-badge ios-badge-purple'>LEARNING CONTINUITY</span>", unsafe_allow_html=True)
-            st.markdown(f"### Unresolved Misconceptions ({st.session_state.active_period})")
-
-            period_gaps = db.get("student_misconceptions", {}).get(session_key, {})
-            has_gaps = False
-
-            for student, gaps in period_gaps.items():
-                active_student_gaps = [g for g in gaps if not g.get("resolved", False)]
-                if active_student_gaps:
-                    has_gaps = True
-                    st.write(f"**👤 {student}**")
-                    for gap in active_student_gaps:
-                        st.markdown(f"- **Lesson:** {gap['lesson']} | **Gap:** {gap['misconception']}")
-
-            if not has_gaps:
-                st.success("🎉 No active unresolved misconceptions found for this class period!")
+            st.markdown("<span class='ios-badge ios-badge-orange'>MASTERY TRACKING</span>", unsafe_allow_html=True)
+            st.markdown(f"### Active Student Misconceptions ({st.session_state.active_period})")
+            
+            misconceptions = db.get("student_misconceptions", {}).get(session_key, {})
+            if misconceptions:
+                records = []
+                for student, gaps in misconceptions.items():
+                    for gap in gaps:
+                        records.append({
+                            "Student": student,
+                            "Lesson": gap.get("lesson"),
+                            "Misconception": gap.get("misconception"),
+                            "Status": "✅ Resolved" if gap.get("resolved") else "⚠️ Pending Review"
+                        })
+                st.dataframe(pd.DataFrame(records), use_container_width=True)
+            else:
+                st.info("No misconceptions tracked for this period.")
