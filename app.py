@@ -258,10 +258,14 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     width: 100% !important;
 }
 
-/* Equal-Width Responsive Segmented Control Pill Container */
+/* =========================================================
+   STRICT FULL-WIDTH CENTERED SEGMENTED CONTROL MENU (PILLS)
+   ========================================================= */
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) {
     width: 100% !important;
-    margin: 0 !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
 }
 
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) > div {
@@ -274,12 +278,17 @@ div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) > div {
     flex-direction: row !important;
     width: 100% !important;
     box-sizing: border-box !important;
+    align-items: center !important;
+    justify-content: space-between !important;
 }
 
-div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) > div > div {
+div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) > div > div,
+div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) [data-baseweb="radio"] {
     flex: 1 1 0px !important;
     display: flex !important;
+    width: 100% !important;
     min-width: 0 !important;
+    margin: 0 !important;
 }
 
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label {
