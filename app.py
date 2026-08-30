@@ -250,11 +250,13 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     width: 100% !important;
 }
 
+/* Enhanced Segmented Control Pill Container */
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) > div {
-    background-color: rgba(118, 118, 128, 0.16) !important;
-    border-radius: 16px !important;
-    padding: 6px !important;
-    gap: 6px !important;
+    background-color: rgba(118, 118, 128, 0.12) !important;
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    border-radius: 14px !important;
+    padding: 4px !important;
+    gap: 4px !important;
     display: flex !important;
     flex-direction: row !important;
     width: 100% !important;
@@ -265,21 +267,23 @@ div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    padding: 14px 20px !important;
-    min-height: 52px !important;
-    border-radius: 12px !important;
+    padding: 10px 16px !important;
+    min-height: 42px !important;
+    border-radius: 10px !important;
     background: transparent !important;
     color: #1C1C1E !important;
     font-weight: 500 !important;
-    font-size: 1rem !important;
+    font-size: 0.92rem !important;
+    letter-spacing: -0.2px !important;
     cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label:has(input:checked) {
     background-color: #FFFFFF !important;
-    color: #007AFF !important;
+    color: #5856D6 !important;
     font-weight: 600 !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -595,9 +599,9 @@ elif app_mode == "👨‍🏫 Teacher Studio":
     """, unsafe_allow_html=True)
     
     render_scope_selectors()
-    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
     
     if not st.session_state.teacher_authenticated:
+        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
         st.markdown("""
         <div class="ios-card-container" style="text-align: center; padding: 48px 24px;">
             <div style="font-size: 3rem; margin-bottom: 12px;">🔒</div>
@@ -614,7 +618,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
             label_visibility="collapsed"
         )
 
-        st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
         # TAB 1: AUTHORING
         if selected_tab == "📝 Ticket Authoring":
