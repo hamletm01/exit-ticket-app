@@ -104,6 +104,12 @@ html, body, [class*="css"] {
 header[data-testid="stHeader"] { background: transparent !important; }
 footer { visibility: hidden; }
 
+/* Uniform Vertical Spacing Helper */
+.ios-spacer {
+    height: 16px;
+    width: 100%;
+}
+
 section[data-testid="stSidebar"] {
     background-color: rgba(242, 242, 247, 0.75) !important;
     backdrop-filter: blur(40px) saturate(190%) !important;
@@ -112,6 +118,7 @@ section[data-testid="stSidebar"] {
     padding-top: 1rem !important;
 }
 
+/* Sidebar Radio Buttons */
 div[data-testid="stRadio"] > div {
     background: rgba(120, 120, 128, 0.12) !important;
     border-radius: 12px !important;
@@ -140,13 +147,14 @@ div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
 
 div[data-testid="stRadio"] input[type="radio"] { display: none !important; }
 
+/* Hero Containers */
 .ios-hero-student {
     background: linear-gradient(135deg, #007AFF 0%, #0051A8 100%);
     border-radius: 22px;
     padding: 24px 30px;
     color: #FFFFFF;
     box-shadow: 0 12px 28px rgba(0, 122, 255, 0.25);
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 .ios-hero-teacher {
@@ -155,7 +163,7 @@ div[data-testid="stRadio"] input[type="radio"] { display: none !important; }
     padding: 24px 30px;
     color: #FFFFFF;
     box-shadow: 0 12px 28px rgba(175, 82, 222, 0.25);
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 .ios-hero-student h1, .ios-hero-teacher h1 {
@@ -190,7 +198,7 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     font-weight: 700;
     letter-spacing: 0.4px;
     text-transform: uppercase;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
 }
 .ios-badge-blue { background: rgba(0, 122, 255, 0.12); color: #007AFF; }
 .ios-badge-green { background: rgba(52, 199, 89, 0.15); color: #28CD41; }
@@ -250,7 +258,12 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     width: 100% !important;
 }
 
-/* Enhanced Segmented Control Pill Container */
+/* Equal-Width Responsive Segmented Control Pill Container */
+div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) {
+    width: 100% !important;
+    margin: 0 !important;
+}
+
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) > div {
     background-color: rgba(118, 118, 128, 0.12) !important;
     border: 1px solid rgba(0, 0, 0, 0.06) !important;
@@ -260,14 +273,23 @@ div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) > div {
     display: flex !important;
     flex-direction: row !important;
     width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) > div > div {
+    flex: 1 1 0px !important;
+    display: flex !important;
+    min-width: 0 !important;
 }
 
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label {
-    flex: 1 1 0% !important;
+    flex: 1 1 0px !important;
+    width: 100% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    padding: 10px 16px !important;
+    text-align: center !important;
+    padding: 10px 12px !important;
     min-height: 42px !important;
     border-radius: 10px !important;
     background: transparent !important;
@@ -277,6 +299,8 @@ div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label {
     letter-spacing: -0.2px !important;
     cursor: pointer !important;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
 }
 
 div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label:has(input:checked) {
@@ -369,7 +393,7 @@ curr_ticket = db.get("session_tickets", {}).get(session_key, {"title": "No Publi
 
 # Helper function to render Course/Period dropdowns below hero banners
 def render_scope_selectors():
-    c_sel_1, c_sel_2 = st.columns(2)
+    c_sel_1, c_sel_2 = st.columns(2, gap="large")
     with c_sel_1:
         course_list = db.get("courses", [])
         selected_course = st.selectbox(
@@ -401,7 +425,7 @@ if app_mode == "🎓 Student Portal":
     """, unsafe_allow_html=True)
     
     render_scope_selectors()
-    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
     
     if not curr_ticket['questions']:
         st.markdown("""
@@ -591,7 +615,7 @@ unsafe_allow_html=True
 # VIEW 2: TEACHER DASHBOARD & ANALYTICS
 # ==========================================
 elif app_mode == "👨‍🏫 Teacher Studio":
-    st.markdown(f"""
+    st.markdown("""
     <div class="ios-hero-teacher">
         <h1>👨‍🏫 Teacher Studio & Analytics</h1>
         <p>Curriculum Design & Live Learning Diagnostics</p>
@@ -600,8 +624,9 @@ elif app_mode == "👨‍🏫 Teacher Studio":
     
     render_scope_selectors()
     
+    st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
+    
     if not st.session_state.teacher_authenticated:
-        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
         st.markdown("""
         <div class="ios-card-container" style="text-align: center; padding: 48px 24px;">
             <div style="font-size: 3rem; margin-bottom: 12px;">🔒</div>
@@ -618,11 +643,11 @@ elif app_mode == "👨‍🏫 Teacher Studio":
             label_visibility="collapsed"
         )
 
-        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
 
         # TAB 1: AUTHORING
         if selected_tab == "📝 Ticket Authoring":
-            c1, c2 = st.columns(2)
+            c1, c2 = st.columns(2, gap="large")
             with c1:
                 with st.expander("➕ Add New Course / Class"):
                     new_course_input = st.text_input("New Course Name:", placeholder="e.g. AP Chemistry")
@@ -655,6 +680,8 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                             st.session_state.active_period = new_period_key
                             st.success(f"Created & saved session: {new_period_key}")
                             st.rerun()
+
+            st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
 
             col_left, col_right = st.columns([1, 1], gap="large")
             with col_left:
