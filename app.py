@@ -695,25 +695,25 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                     if combined_text.strip():
                         with st.spinner("✨ Synthesizing courseware and building questions..."):
                             gen_prompt = f"""
-                            You are an expert High School Curriculum Designer.
-                            
-                            STRICT RULE:
-                            Create 3 targeted short-answer questions based EXCLUSIVELY and SOLELY on the provided lesson text below.
-                            Do NOT bring in external knowledge, related science topics, or concepts not mentioned in the source material.
-                            Every question MUST directly test a fact, term, or process explicitly written in the provided text.
-                            
-                            Format the output strictly as 3 numbered questions (1., 2., 3.).
-                            
-                            SOURCE MATERIALS:
+                            You are a secondary school teacher writing an exit ticket quiz for your students based on today's lesson material.
+
+                            LESSON SOURCE MATERIAL:
                             {combined_text[:4000]}
+
+                            INSTRUCTIONS:
+                            1. Write exactly 3 short-answer questions to test if students understand the subject concepts described in the lesson material above.
+                            2. Focus directly on the core educational concepts, definitions, and processes mentioned in the material (e.g., specific stages, science mechanisms, or key terms).
+                            3. Do NOT ask meta-questions about the text itself (e.g., do NOT ask "What is the title?", "What word is used?", or "According to the text..."). Ask direct subject-matter questions as if you were testing a student in class.
+                            4. Base all questions strictly on facts explicitly stated in the source material. Do not introduce outside concepts not mentioned in the lesson.
+                            5. Format the output ONLY as 3 numbered questions:
+                               1. [First question]
+                               2. [Second question]
+                               3. [Third question]
                             """
                             
                             ticket_res = client.models.generate_content(
                                 model=MODEL_NAME, 
-                                contents=gen_prompt,
-                                config={
-                                    "system_instruction": "You are a strict source-grounded educator. Do not invent or pull in external concepts not present in the given text."
-                                }
+                                contents=gen_prompt
                             )
                             
                             fresh_db = load_db()
