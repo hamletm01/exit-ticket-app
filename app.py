@@ -428,17 +428,10 @@ def run_gemini_generation(contents, config=None):
     
     for model in models_to_try:
         try:
-            if config:
-                return client.models.generate_content(
-                    model=model,
-                    contents=contents,
-                    config=config
-                )
-            else:
-                return client.models.generate_content(
-                    model=model,
-                    contents=contents
-                )
+            kwargs = {"model": model, "contents": contents}
+            if config is not None:
+                kwargs["config"] = config
+            return client.models.generate_content(**kwargs)
         except Exception as e:
             last_error = e
             continue
@@ -545,7 +538,6 @@ if app_mode == "🎓 Student Portal":
                                 qa_payload += f"Question: {q}\nStudent Answer: {a}\n---\n"
                             
                             eval_prompt = f"""
-                            You are a supportive, high-efficiency high school AI tutor.
                             Evaluate this student's ({clean_name}) exit ticket submission.
                             
                             Course: {st.session_state.active_course}
@@ -566,9 +558,11 @@ if app_mode == "🎓 Student Portal":
                             }}
                             """
                             
+                            sys_instruct = "You are a supportive, high-efficiency high school AI tutor."
                             response = run_gemini_generation(
                                 contents=eval_prompt,
                                 config=types.GenerateContentConfig(
+                                    system_instruction=sys_instruct,
                                     response_mime_type="application/json",
                                     temperature=0.0
                                 )
@@ -740,12 +734,18 @@ elif app_mode == "👨‍🏫 Teacher Studio":
 
                     if combined_source_text.strip():
                         with st.spinner("✨ Synthesizing document and generating quiz questions..."):
+                            sys_instruction_text = (
+                                "You are a classroom teacher creating an exit ticket quiz for your students "
+                                "based ONLY on the primary educational content provided. Base questions ONLY on explicit facts. "
+                                "Never mention 'the document', 'the text', or form numbers."
+                            )
+                            
+                            cleaned_source = combined_source_text[:10000].replace("{", "(").replace("}", ")")
+                            
                             gen_prompt = f"""
-                            You are a classroom teacher creating an exit ticket quiz for your students based ONLY on the primary educational content below.
-
                             LESSON CONTENT:
                             \"\"\"
-                            {combined_source_text[:12000]}
+                            {cleaned_source}
                             \"\"\"
 
                             STRICT RULES FOR QUESTION GENERATION:
@@ -756,7 +756,6 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                                - Question 2: Ask about a specific mechanism, process, stage, or relationship described.
                                - Question 3: Ask about a specific detail, key term, diagram label, or real-world application mentioned.
                             4. Direct Classroom Phrasing: Phrase questions naturally as direct classroom checks (e.g., "What is...", "How does...", "Describe how...").
-                            5. Strict Context Grounding: Base questions ONLY on facts explicitly present in the LESSON CONTENT above. NEVER mention "the document" or "the text".
 
                             FORMAT OUTPUT EXACTLY AS 3 NUMBERED QUESTIONS:
                             1. [Question 1 - Main Concept]
@@ -766,7 +765,10 @@ elif app_mode == "👨‍🏫 Teacher Studio":
 
                             ticket_res = run_gemini_generation(
                                 contents=gen_prompt,
-                                config=types.GenerateContentConfig(temperature=0.0)
+                                config=types.GenerateContentConfig(
+                                    system_instruction=sys_instruction_text,
+                                    temperature=0.0
+                                )
                             )
                             
                             fresh_db = load_db()
