@@ -6,10 +6,8 @@ import json
 import re
 from datetime import datetime
 
-# Page Config
 st.set_page_config(page_title="Exit Ticket Studio", page_icon="🎓", layout="wide")
 
-# 1. Imports & SDK Setup
 try:
     from google import genai
     from google.genai import types
@@ -17,7 +15,7 @@ except ImportError as e:
     st.error(f"Import Error: {e}. Please ensure 'google-genai' is listed in your requirements.txt.")
     st.stop()
 
-# 2. Database Initialization (SQLite)
+# Database Setup
 DB_FILE = "exit_ticket_app.db"
 
 def init_db():
@@ -65,7 +63,6 @@ def run_query(query, params=(), fetchone=False, fetchall=False, commit=False):
     conn.close()
     return data
 
-# Seed default database entry if empty
 if not run_query("SELECT * FROM sessions", fetchall=True):
     default_q = "1. Explain the primary function of photosynthesis.\n2. What are the key outputs of cellular respiration?\n3. How do plants convert light energy into chemical energy?"
     run_query(
@@ -74,7 +71,6 @@ if not run_query("SELECT * FROM sessions", fetchall=True):
         commit=True
     )
 
-# 3. API Client Connection
 if "GEMINI_API_KEY" in st.secrets:
     api_key = str(st.secrets["GEMINI_API_KEY"]).strip().strip('"').strip("'")
     client = genai.Client(api_key=api_key)
@@ -82,7 +78,6 @@ else:
     st.error("⚠️ GEMINI_API_KEY is missing in your Streamlit secrets (.streamlit/secrets.toml).")
     st.stop()
 
-# 4. Helper Functions & Robust Execution
 def sanitize_text(text):
     if not text:
         return ""
@@ -110,8 +105,7 @@ def safe_gemini_call(prompt, system_instruction=None, response_json=False):
     if not clean_prompt:
         raise ValueError("Cannot send an empty prompt.")
 
-    # Validated endpoints for google-genai package
-    models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash"]
+    target_model = "gemini-3.6-flash"
     
     config_dict = {"temperature": 0.2}
     if system_instruction:
@@ -121,22 +115,16 @@ def safe_gemini_call(prompt, system_instruction=None, response_json=False):
         
     config = types.GenerateContentConfig(**config_dict)
     
-    last_err = None
-    for model_id in models_to_try:
-        try:
-            response = client.models.generate_content(
-                model=model_id,
-                contents=clean_prompt,
-                config=config
-            )
-            return response.text
-        except Exception as e:
-            last_err = e
-            continue
-            
-    raise RuntimeError(f"API Call Failed: {last_err}")
+    try:
+        response = client.models.generate_content(
+            model=target_model,
+            contents=clean_prompt,
+            config=config
+        )
+        return response.text
+    except Exception as e:
+        raise RuntimeError(f"API Call Failed using '{target_model}': {e}")
 
-# 5. Application Interface
 st.title("🎓 Exit Ticket Studio")
 app_mode = st.sidebar.radio("Navigation", ["🎓 Student Portal", "👨‍🏫 Teacher Studio"])
 
@@ -160,9 +148,6 @@ active_session = run_query("SELECT title, questions FROM sessions WHERE session_
 active_title = active_session[0] if active_session else "Untitled Lesson"
 active_questions = active_session[1] if active_session else ""
 
-# ------------------------------------------
-# MODE 1: STUDENT PORTAL
-# ------------------------------------------
 if app_mode == "🎓 Student Portal":
     st.subheader(f"Lesson: {active_title}")
     
@@ -256,9 +241,6 @@ if app_mode == "🎓 Student Portal":
                             except Exception as e:
                                 st.error(f"Evaluation failed: {e}")
 
-# ------------------------------------------
-# MODE 2: TEACHER STUDIO
-# ------------------------------------------
 else:
     st.subheader("👨‍🏫 Teacher Studio")
     tab1, tab2 = st.tabs(["📝 Author Ticket", "📊 Student Analytics"])
