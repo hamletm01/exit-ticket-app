@@ -5,12 +5,19 @@ import docx
 import json
 import re
 from datetime import datetime
-import google.generativeai as genai
 
 # Page Config
 st.set_page_config(page_title="Exit Ticket Studio", page_icon="🎓", layout="wide")
 
-# 1. DATABASE SETUP
+# 1. Imports & SDK Setup
+try:
+    from google import genai
+    from google.genai import types
+except ImportError as e:
+    st.error(f"Import Error: {e}. Please ensure 'google-genai' is listed in your requirements.txt.")
+    st.stop()
+
+# 2. Database Initialization (SQLite)
 DB_FILE = "exit_ticket_app.db"
 
 def init_db():
@@ -58,24 +65,24 @@ def run_query(query, params=(), fetchone=False, fetchall=False, commit=False):
     conn.close()
     return data
 
-# Seed default session if empty
+# Seed default database entry if empty
 if not run_query("SELECT * FROM sessions", fetchall=True):
-    default_q = "1. Explain the primary function of photosynthesis.\n2. What are the key outputs of cellular respiration?\n3. How do plants convert light energy to chemical energy?"
+    default_q = "1. Explain the primary function of photosynthesis.\n2. What are the key outputs of cellular respiration?\n3. How do plants convert light energy into chemical energy?"
     run_query(
         "INSERT INTO sessions (session_key, course, period, title, questions) VALUES (?, ?, ?, ?, ?)",
         ("Biology::Period 1", "Biology", "Period 1", "Photosynthesis & Respiration", default_q),
         commit=True
     )
 
-# 2. API INITIALIZATION
+# 3. API Client Connection
 if "GEMINI_API_KEY" in st.secrets:
     api_key = str(st.secrets["GEMINI_API_KEY"]).strip().strip('"').strip("'")
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 else:
-    st.error("⚠️ GEMINI_API_KEY missing in Streamlit Secrets (.streamlit/secrets.toml).")
+    st.error("⚠️ GEMINI_API_KEY is missing in your Streamlit secrets (.streamlit/secrets.toml).")
     st.stop()
 
-# 3. HELPER FUNCTIONS & API CALLS
+# 4. Helper Functions & Robust Execution
 def sanitize_text(text):
     if not text:
         return ""
@@ -103,23 +110,33 @@ def safe_gemini_call(prompt, system_instruction=None, response_json=False):
     if not clean_prompt:
         raise ValueError("Cannot send an empty prompt.")
 
-    generation_config = {"temperature": 0.2}
+    # Validated endpoints for google-genai package
+    models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash"]
+    
+    config_dict = {"temperature": 0.2}
+    if system_instruction:
+        config_dict["system_instruction"] = sanitize_text(system_instruction)
     if response_json:
-        generation_config["response_mime_type"] = "application/json"
+        config_dict["response_mime_type"] = "application/json"
+        
+    config = types.GenerateContentConfig(**config_dict)
+    
+    last_err = None
+    for model_id in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=model_id,
+                contents=clean_prompt,
+                config=config
+            )
+            return response.text
+        except Exception as e:
+            last_err = e
+            continue
+            
+    raise RuntimeError(f"API Call Failed: {last_err}")
 
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        generation_config=generation_config,
-        system_instruction=sanitize_text(system_instruction) if system_instruction else None
-    )
-
-    try:
-        res = model.generate_content(clean_prompt)
-        return res.text
-    except Exception as e:
-        raise RuntimeError(f"API Execution Error: {e}")
-
-# 4. APP INTERFACE
+# 5. Application Interface
 st.title("🎓 Exit Ticket Studio")
 app_mode = st.sidebar.radio("Navigation", ["🎓 Student Portal", "👨‍🏫 Teacher Studio"])
 
@@ -143,7 +160,9 @@ active_session = run_query("SELECT title, questions FROM sessions WHERE session_
 active_title = active_session[0] if active_session else "Untitled Lesson"
 active_questions = active_session[1] if active_session else ""
 
+# ------------------------------------------
 # MODE 1: STUDENT PORTAL
+# ------------------------------------------
 if app_mode == "🎓 Student Portal":
     st.subheader(f"Lesson: {active_title}")
     
@@ -163,7 +182,7 @@ if app_mode == "🎓 Student Portal":
             if unresolved:
                 st.warning(f"🔄 **Mastery Revision Active:** Re-testing concept from '{unresolved[1]}'")
                 try:
-                    mastery_question = safe_gemini_call(f"Generate 1 short review question testing: '{unresolved[2]}'")
+                    mastery_question = safe_gemini_call(f"Generate 1 short review question for a student testing: '{unresolved[2]}'")
                 except Exception:
                     mastery_question = None
             
@@ -237,7 +256,9 @@ if app_mode == "🎓 Student Portal":
                             except Exception as e:
                                 st.error(f"Evaluation failed: {e}")
 
+# ------------------------------------------
 # MODE 2: TEACHER STUDIO
+# ------------------------------------------
 else:
     st.subheader("👨‍🏫 Teacher Studio")
     tab1, tab2 = st.tabs(["📝 Author Ticket", "📊 Student Analytics"])
@@ -285,4 +306,3 @@ else:
                         st.write(f"**Teacher Question:** {data.get('teacher_question')}")
                     except Exception:
                         st.text(raw)
-                        
