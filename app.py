@@ -454,7 +454,10 @@ if app_mode == "🎓 Student Portal":
                     Create 1 short review question that re-tests this specific concept in a clear, supportive way to see if they've mastered it now.
                     Return ONLY the question text.
                     """
-                    m_res = client.models.generate_content(model=MODEL_NAME, contents=mastery_prompt)
+                    m_res = client.models.generate_content(
+                        model=MODEL_NAME, 
+                        contents=mastery_prompt
+                    )
                     mastery_question = m_res.text.strip()
             
             total_count = len(base_questions) + (1 if mastery_question else 0)
@@ -693,13 +696,25 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                         with st.spinner("✨ Synthesizing courseware and building questions..."):
                             gen_prompt = f"""
                             You are an expert High School Curriculum Designer.
-                            Based on these lesson materials, create 3 targeted short-answer questions to assess student understanding.
-                            Format them strictly as numbered questions (1., 2., 3.).
                             
-                            Materials:
+                            STRICT RULE:
+                            Create 3 targeted short-answer questions based EXCLUSIVELY and SOLELY on the provided lesson text below.
+                            Do NOT bring in external knowledge, related science topics, or concepts not mentioned in the source material.
+                            Every question MUST directly test a fact, term, or process explicitly written in the provided text.
+                            
+                            Format the output strictly as 3 numbered questions (1., 2., 3.).
+                            
+                            SOURCE MATERIALS:
                             {combined_text[:4000]}
                             """
-                            ticket_res = client.models.generate_content(model=MODEL_NAME, contents=gen_prompt)
+                            
+                            ticket_res = client.models.generate_content(
+                                model=MODEL_NAME, 
+                                contents=gen_prompt,
+                                config={
+                                    "system_instruction": "You are a strict source-grounded educator. Do not invent or pull in external concepts not present in the given text."
+                                }
+                            )
                             
                             fresh_db = load_db()
                             fresh_db["session_tickets"][session_key] = {
