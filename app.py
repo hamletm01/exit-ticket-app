@@ -258,64 +258,37 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     width: 100% !important;
 }
 
-/* STRICT FULL-WIDTH CENTERED SEGMENTED CONTROL MENU (PILLS) */
-div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-}
-
-div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) > div {
+/* NATIVE TABS FULL-WIDTH SEGMENTED PILL STYLING */
+div[data-baseweb="tab-list"] {
     background-color: rgba(118, 118, 128, 0.12) !important;
-    border: 1px solid rgba(0, 0, 0, 0.06) !important;
     border-radius: 14px !important;
     padding: 4px !important;
     gap: 4px !important;
-    display: flex !important;
-    flex-direction: row !important;
     width: 100% !important;
-    box-sizing: border-box !important;
-    align-items: center !important;
-    justify-content: space-between !important;
+    display: flex !important;
 }
 
-div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) > div > div,
-div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) [data-baseweb="radio"] {
+div[data-baseweb="tab-list"] button {
     flex: 1 1 0px !important;
-    display: flex !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    margin: 0 !important;
-}
-
-div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label {
-    flex: 1 1 0px !important;
-    width: 100% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-    padding: 10px 12px !important;
-    min-height: 42px !important;
     border-radius: 10px !important;
-    background: transparent !important;
-    color: #1C1C1E !important;
+    padding: 10px 12px !important;
     font-weight: 500 !important;
     font-size: 0.92rem !important;
-    letter-spacing: -0.2px !important;
-    cursor: pointer !important;
+    color: #1C1C1E !important;
+    background-color: transparent !important;
+    border: none !important;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    white-space: nowrap !important;
-    box-sizing: border-box !important;
+    text-align: center !important;
 }
 
-div[data-testid="stRadio"]:has(input[name="teacher_studio_menu"]) label:has(input:checked) {
+div[data-baseweb="tab-list"] button[aria-selected="true"] {
     background-color: #FFFFFF !important;
     color: #5856D6 !important;
     font-weight: 600 !important;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }
+
+div[data-baseweb="tab-highlight-title"] { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -644,18 +617,12 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         </div>
         """, unsafe_allow_html=True)
     else:
-        selected_tab = st.radio(
-            "Teacher Studio Navigation",
-            ["📝 Ticket Authoring", "📊 Class Analytics & AI Insights", "🔄 Mastery Loop Registry"],
-            key="teacher_studio_menu",
-            horizontal=True,
-            label_visibility="collapsed"
-        )
-
-        st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
+        # Full-width centered menu via Native Streamlit Tabs
+        tab1, tab2, tab3 = st.tabs(["📝 Ticket Authoring", "📊 Class Analytics & AI Insights", "🔄 Mastery Loop Registry"])
 
         # TAB 1: AUTHORING
-        if selected_tab == "📝 Ticket Authoring":
+        with tab1:
+            st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
             c1, c2 = st.columns(2, gap="large")
             with c1:
                 with st.expander("➕ Add New Course / Class"):
@@ -747,7 +714,8 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                     st.info("No active exit ticket published for this session yet.")
 
         # TAB 2: CLASS ANALYTICS & AI INSIGHTS
-        elif selected_tab == "📊 Class Analytics & AI Insights":
+        with tab2:
+            st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
             st.markdown("<span class='ios-badge ios-badge-purple'>SESSION PERFORMANCE</span>", unsafe_allow_html=True)
             st.markdown(f"### Live Results for {st.session_state.active_course} — {st.session_state.active_period}")
 
@@ -788,7 +756,8 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                         """, unsafe_allow_html=True)
 
         # TAB 3: MASTERY LOOP REGISTRY
-        elif selected_tab == "🔄 Mastery Loop Registry":
+        with tab3:
+            st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
             st.markdown("<span class='ios-badge ios-badge-orange'>REVISION TRACKER</span>", unsafe_allow_html=True)
             st.markdown(f"### Active Student Misconceptions ({st.session_state.active_period})")
 
