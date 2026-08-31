@@ -337,15 +337,31 @@ def parse_questions(raw_text):
         q_list.append(current_q)
     return q_list if len(q_list) > 0 else [raw_text]
 
-def extract_text_fallback(file):
+def extract_file_content(file):
     text = ""
-    if file.name.endswith(".docx"):
-        doc = docx.Document(file)
-        for para in doc.paragraphs:
-            text += para.text + "\n"
+    if file.name.endswith(".pdf"):
+        try:
+            reader = pypdf.PdfReader(file)
+            for page in reader.pages:
+                text += (page.extract_text() or "") + "\n"
+        except Exception as e:
+            st.error(f"Error reading PDF: {e}")
+    elif file.name.endswith(".docx"):
+        try:
+            doc = docx.Document(file)
+            for para in doc.paragraphs:
+                text += para.text + "\n"
+        except Exception as e:
+            st.error(f"Error reading Word Document: {e}")
     elif file.name.endswith(".txt"):
-        text = file.read().decode("utf-8")
-    return text
+        try:
+            text = file.read().decode("utf-8")
+        except Exception as e:
+            st.error(f"Error reading Text file: {e}")
+            
+    # Clean out structural line noise
+    clean_text = re.sub(r'[\r\t]', ' ', text)
+    return clean_text
 
 # ==========================================
 # SIDEBAR: SYSTEM & ACCESS CONTROL ONLY
@@ -598,245 +614,4 @@ f"""<div class="ios-feedback-card">
 
 <div style="background: #F2F2F7; padding: 16px; border-radius: 14px; margin: 16px 0;">
 <strong style="color: #007AFF;">📖 What to Revise Before Next Lesson:</strong>
-<ul style="margin: 8px 0 0 18px; padding: 0;">
-{revision_items}
-</ul>
-</div>
-
-<div style="background: rgba(255, 149, 0, 0.12); border-left: 4px solid #FF9500; padding: 16px; border-radius: 12px; margin-top: 16px;">
-<strong style="color: #FF9500;">🙋 Question to Ask Your Teacher Next Lesson:</strong>
-<p style="margin: 6px 0 0 0; font-weight: 600; color: #1C1C1E;">"{result_json.get('teacher_clarification_question')}"</p>
-</div>
-</div>""", 
-unsafe_allow_html=True
-)
-
-# ==========================================
-# VIEW 2: TEACHER DASHBOARD & ANALYTICS
-# ==========================================
-elif app_mode == "👨‍🏫 Teacher Studio":
-    st.markdown("""
-    <div class="ios-hero-teacher">
-        <h1>👨‍🏫 Teacher Studio & Analytics</h1>
-        <p>Curriculum Design & Live Learning Diagnostics</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    render_scope_selectors()
-    session_key, curr_ticket = get_current_ticket()
-    
-    st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
-    
-    if not st.session_state.teacher_authenticated:
-        st.markdown("""
-        <div class="ios-card-container" style="text-align: center; padding: 48px 24px;">
-            <div style="font-size: 3rem; margin-bottom: 12px;">🔒</div>
-            <h3 style="font-weight: 700; color: #1C1C1E; margin-bottom: 8px;">Dashboard Protected</h3>
-            <p style="color: #8E8E93; max-width: 420px; margin: 0 auto;">Please enter the Teacher Passcode in the Control Center (left sidebar) to unlock lesson authoring and live student analytics.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        tab1, tab2, tab3 = st.tabs(["📝 Ticket Authoring", "📊 Class Analytics & AI Insights", "🔄 Mastery Loop Registry"])
-
-        # TAB 1: AUTHORING
-        with tab1:
-            st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
-            c1, c2 = st.columns(2, gap="large")
-            with c1:
-                with st.expander("➕ Add New Course / Class"):
-                    new_course_input = st.text_input("New Course Name:", placeholder="e.g. AP Chemistry")
-                    if st.button("Add Course 📚"):
-                        if new_course_input:
-                            fresh_db = load_db()
-                            if new_course_input not in fresh_db["courses"]:
-                                fresh_db["courses"].append(new_course_input)
-                                fresh_db["course_periods"][new_course_input] = ["Period 1"]
-                                save_db(fresh_db)
-                                st.session_state.active_course = new_course_input
-                                st.session_state.active_period = "Period 1"
-                                st.success(f"Course '{new_course_input}' created & saved globally!")
-                                st.rerun()
-
-            with c2:
-                with st.expander(f"➕ Create Session/Period for {st.session_state.active_course}"):
-                    p_num = st.selectbox("Period Identifier:", ["Period 1", "Period 2", "Period 3", "Period 4", "Period 5", "Period 6"])
-                    p_date = st.date_input("Session Date:")
-                    new_period_key = f"{p_num} - {p_date.strftime('%b %d')}"
-                    
-                    if st.button("Initialize New Session 🚀"):
-                        fresh_db = load_db()
-                        active_crs = st.session_state.active_course
-                        if active_crs not in fresh_db["course_periods"]:
-                            fresh_db["course_periods"][active_crs] = []
-                        if new_period_key not in fresh_db["course_periods"][active_crs]:
-                            fresh_db["course_periods"][active_crs].append(new_period_key)
-                            save_db(fresh_db)
-                            st.session_state.active_period = new_period_key
-                            st.success(f"Created & saved session: {new_period_key}")
-                            st.rerun()
-
-            st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
-
-            col_left, col_right = st.columns([1, 1], gap="large")
-            with col_left:
-                st.markdown("<span class='ios-badge ios-badge-blue'>CURRICULUM AUTHORING</span>", unsafe_allow_html=True)
-                st.markdown(f"### Create Ticket for {st.session_state.active_period}")
-                
-                lesson_title = st.text_input("Lesson Title / Unit Topic:", value=curr_ticket.get('title', ''))
-                uploaded_file = st.file_uploader("Upload Lesson Content (PDF, DOCX, TXT):", type=["pdf", "docx", "txt"])
-                raw_notes = st.text_area("Or Paste Syllabus Notes / Outline:", height=110, placeholder="Paste lesson objectives, key facts, or syllabus points...")
-                
-                if st.button("Generate & Publish Ticket 📢"):
-                    contents_payload = []
-                    
-                    if uploaded_file or raw_notes.strip():
-                        with st.spinner("✨ Processing document with Gemini vision & authoring ticket..."):
-                            # 1. Direct Multimodal Attachment (PDFs passed directly as byte streams)
-                            if uploaded_file is not None:
-                                file_bytes = uploaded_file.getvalue()
-                                mime_type = uploaded_file.type
-                                
-                                # Infer MIME type fallback if missing
-                                if not mime_type:
-                                    if uploaded_file.name.endswith(".pdf"):
-                                        mime_type = "application/pdf"
-                                    elif uploaded_file.name.endswith(".txt"):
-                                        mime_type = "text/plain"
-                                    else:
-                                        mime_type = "application/octet-stream"
-
-                                if mime_type == "application/pdf":
-                                    contents_payload.append(
-                                        types.Part.from_bytes(
-                                            data=file_bytes,
-                                            mime_type="application/pdf"
-                                        )
-                                    )
-                                else:
-                                    # Fallback text extraction for docx/txt
-                                    txt = extract_text_fallback(uploaded_file)
-                                    if txt:
-                                        contents_payload.append(f"Document Text:\n{txt}")
-
-                            # 2. Add teacher notes if provided
-                            if raw_notes.strip():
-                                contents_payload.append(f"Additional Lesson Notes:\n{raw_notes.strip()}")
-
-                            # 3. Add explicit prompt enforcing focus on primary educational content
-                            gen_prompt = """
-                            You are a classroom teacher creating an exit ticket quiz for your students based ONLY on the primary educational content in the attached document/notes.
-
-                            STRICT RULES FOR QUESTION GENERATION:
-                            1. IGNORE METADATA & FORM ARTIFACTS: Completely ignore document headers, page numbers, form fields, sequence tags, PINs, or internal PDF structures.
-                            2. NO REPETITION OR OVERLAP: Each of the 3 questions MUST test a COMPLETELY DIFFERENT concept, definition, detail, or process from the lesson content body.
-                            3. QUESTION DIVERSITY:
-                               - Question 1: Ask about the main definition or primary concept presented.
-                               - Question 2: Ask about a specific mechanism, process, stage, or relationship described.
-                               - Question 3: Ask about a specific detail, key term, diagram label, or real-world application mentioned.
-                            4. Direct Classroom Phrasing: Phrase questions naturally as direct classroom checks (e.g., "What is...", "How does...", "Describe how...").
-                            5. NO Meta-References: NEVER refer to "the attached document", "the text", or "source file".
-
-                            FORMAT OUTPUT EXACTLY AS 3 NUMBERED QUESTIONS:
-                            1. [Question 1 - Main Concept]
-                            2. [Question 2 - Specific Process/Mechanism]
-                            3. [Question 3 - Specific Detail/Application]
-                            """
-                            contents_payload.append(gen_prompt)
-
-                            ticket_res = client.models.generate_content(
-                                model=MODEL_NAME, 
-                                contents=contents_payload,
-                                config=types.GenerateContentConfig(temperature=0.0)
-                            )
-                            
-                            fresh_db = load_db()
-                            fresh_db["session_tickets"][session_key] = {
-                                "title": lesson_title.strip() if lesson_title.strip() else "Unit Check-in",
-                                "questions": ticket_res.text
-                            }
-                            save_db(fresh_db)
-                            st.success(f"Exit Ticket Published Globally for {session_key}!")
-                            st.rerun()
-                    else:
-                        st.error("Please upload a file or paste lesson notes to generate a ticket.")
-
-            with col_right:
-                st.markdown("<span class='ios-badge ios-badge-purple'>ACTIVE TICKET PREVIEW</span>", unsafe_allow_html=True)
-                st.markdown(f"### Currently Active: {curr_ticket.get('title', 'None')}")
-                
-                if curr_ticket.get("questions"):
-                    st.text_area(
-                        "Questions Published to Students:",
-                        value=curr_ticket["questions"],
-                        height=220,
-                        key="active_q_preview",
-                        disabled=True
-                    )
-                else:
-                    st.info("No active exit ticket published for this session yet.")
-
-        # TAB 2: CLASS ANALYTICS & AI INSIGHTS
-        with tab2:
-            st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
-            st.markdown("<span class='ios-badge ios-badge-purple'>SESSION PERFORMANCE</span>", unsafe_allow_html=True)
-            st.markdown(f"### Live Results for {st.session_state.active_course} — {st.session_state.active_period}")
-
-            session_results = db.get("student_results", {}).get(session_key, [])
-
-            if not session_results:
-                st.info("No student responses submitted for this period yet.")
-            else:
-                df = pd.DataFrame(session_results)
-                
-                m1, m2 = st.columns(2)
-                with m1:
-                    st.metric("Total Submissions", len(df))
-                with m2:
-                    st.metric("Active Topic", curr_ticket.get("title", "N/A"))
-
-                st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
-                st.dataframe(df[["Timestamp", "Student ID", "Score", "Misconception Summary"]], use_container_width=True)
-                st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
-                
-                if st.button("Generate AI Class Misconception Report 🤖"):
-                    with st.spinner("Analyzing class submission trends..."):
-                        summary_prompt = f"""
-                        Analyze these student exit ticket summaries for the class period '{st.session_state.active_period}':
-                        {df[['Student ID', 'Score', 'Misconception Summary']].to_json(orient='records')}
-
-                        Provide a short, 3-bullet-point summary for the teacher:
-                        1. Overall class understanding level.
-                        2. Common errors or shared misconceptions identified.
-                        3. Recommended follow-up activity or topic to re-teach next lesson.
-                        """
-                        report_res = client.models.generate_content(
-                            model=MODEL_NAME, 
-                            contents=summary_prompt,
-                            config=types.GenerateContentConfig(temperature=0.0)
-                        )
-                        st.markdown(f"""
-                        <div class="ios-feedback-card">
-                            <h4 style="margin: 0 0 12px 0; color: #5856D6;">🤖 AI Teaching Assistant Insights</h4>
-                            {report_res.text}
-                        </div>
-                        """, unsafe_allow_html=True)
-
-        # TAB 3: MASTERY LOOP REGISTRY
-        with tab3:
-            st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
-            st.markdown("<span class='ios-badge ios-badge-orange'>REVISION TRACKER</span>", unsafe_allow_html=True)
-            st.markdown(f"### Active Student Misconceptions ({st.session_state.active_period})")
-
-            all_gaps = db.get("student_misconceptions", {}).get(session_key, {})
-
-            if not all_gaps:
-                st.info("No active misconceptions logged for this session.")
-            else:
-                for student, gaps in all_gaps.items():
-                    with st.expander(f"👤 {student} ({len([g for g in gaps if not g.get('resolved')])} unresolved)"):
-                        for idx, gap in enumerate(gaps):
-                            status_badge = "✅ Resolved" if gap.get("resolved") else "🚨 Unresolved (Active in next ticket)"
-                            st.write(f"**Lesson:** {gap.get('lesson')}")
-                            st.write(f"**Identified Error:** {gap.get('misconception')}")
-                            st.write(f"**Status:** {status_badge}")
-                            st.divider()
+<ul style="margin: 8px 0
