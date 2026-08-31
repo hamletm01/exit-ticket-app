@@ -452,6 +452,7 @@ if app_mode == "🎓 Student Portal":
                     Their identified misconception/error was: "{last_gap['misconception']}".
                     
                     Create 1 short review question that re-tests this specific concept in a clear, supportive way to see if they've mastered it now.
+                    Phrase it as a direct classroom question without referring to texts or documents.
                     Return ONLY the question text.
                     """
                     m_res = client.models.generate_content(
@@ -698,22 +699,23 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                     if combined_text.strip():
                         with st.spinner("✨ Synthesizing courseware and building questions..."):
                             gen_prompt = f"""
-                            You are a strict classroom teacher creating a comprehension quiz based ONLY on the provided text.
+                            You are a classroom teacher creating an exit ticket quiz for your students based ONLY on today's lesson content below.
 
-                            SOURCE MATERIAL:
+                            LESSON CONTENT:
                             \"\"\"
                             {combined_text[:4000]}
                             \"\"\"
 
-                            STRICT RULES:
-                            1. Base EVERY question EXCLUSIVELY on facts explicitly stated in the SOURCE MATERIAL above.
-                            2. Do NOT use outside knowledge, general knowledge, or unmentioned facts (e.g., do NOT ask about chemical formulas like H2O or states of matter unless explicitly named in the text).
-                            3. Do NOT ask meta-questions about the document layout (e.g., "What title...", "According to paragraph 2...").
-                            4. Focus on testing comprehension of the specific concepts, definitions, and processes explicitly described in the text.
-                            5. Format as exactly 3 numbered questions:
-                               1. [Question 1]
-                               2. [Question 2]
-                               3. [Question 3]
+                            STRICT RULES FOR QUESTION GENERATION:
+                            1. Write 3 short-answer questions that test the core concepts, mechanisms, and definitions explicitly described in the LESSON CONTENT.
+                            2. Direct Classroom Phrasing: Phrase every question as a direct test of lesson material (e.g., "What is...", "How does...", "Describe the process of...", "According to today's lesson...").
+                            3. NO Meta-References: NEVER use terms like "provided text", "uploaded material", "explicitly named in the text", "source document", or "in paragraph X". Students are taking a quiz on what they learned today and do not have access to a text snippet during the quiz.
+                            4. Strict Context Grounding: Do NOT ask about outside facts, unmentioned chemistry/science rules, or unmentioned formulas. Only test facts present in the LESSON CONTENT.
+                            
+                            FORMAT OUTPUT EXACTLY AS 3 NUMBERED QUESTIONS:
+                            1. [Question 1]
+                            2. [Question 2]
+                            3. [Question 3]
                             """
                             
                             ticket_res = client.models.generate_content(
