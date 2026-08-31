@@ -6,20 +6,18 @@ import json
 import re
 from datetime import datetime
 
-# Enforce Page Config First
+# 1. Page Configuration
 st.set_page_config(page_title="Exit Ticket Studio", page_icon="🎓", layout="wide")
 
-# Catch initialization errors visibly
+# 2. Imports & SDK Setup
 try:
     from google import genai
     from google.genai import types
-except Exception as e:
-    st.error(f"Failed to import Google GenAI library. Run 'pip install google-genai'. Error: {e}")
+except ImportError:
+    st.error("Missing required library. Please run: `pip install google-genai pypdf python-docx` in your terminal.")
     st.stop()
 
-# ==========================================
-# 1. DATABASE SETUP
-# ==========================================
+# 3. Database Initialization (SQLite)
 DB_FILE = "exit_ticket_app.db"
 
 def init_db():
@@ -51,11 +49,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-try:
-    init_db()
-except Exception as e:
-    st.error(f"Database initialization failed: {e}")
-    st.stop()
+init_db()
 
 def run_query(query, params=(), fetchone=False, fetchall=False, commit=False):
     conn = sqlite3.connect(DB_FILE)
@@ -71,33 +65,28 @@ def run_query(query, params=(), fetchone=False, fetchall=False, commit=False):
     conn.close()
     return data
 
-# Seed default session if empty
+# Seed default database entry if empty
 if not run_query("SELECT * FROM sessions", fetchall=True):
-    default_q = "1. Explain the primary function of photosynthesis.\n2. What are the key outputs of cellular respiration?\n3. How do plants convert light energy to chemical energy?"
+    default_q = "1. Explain the primary function of photosynthesis.\n2. What are the key outputs of cellular respiration?\n3. How do plants convert light energy into chemical energy?"
     run_query(
         "INSERT INTO sessions (session_key, course, period, title, questions) VALUES (?, ?, ?, ?, ?)",
-        ("Earth Science::Period 1", "Earth Science", "Period 1", "Photosynthesis & Respiration", default_q),
+        ("Biology::Period 1", "Biology", "Period 1", "Photosynthesis & Respiration", default_q),
         commit=True
     )
 
-# ==========================================
-# 2. API INITIALIZATION
-# ==========================================
+# 4. API Client Connection
 if "GEMINI_API_KEY" in st.secrets:
     api_key = str(st.secrets["GEMINI_API_KEY"]).strip().strip('"').strip("'")
     client = genai.Client(api_key=api_key)
 else:
-    st.error("⚠️ GEMINI_API_KEY missing in Streamlit Secrets. Please check your .streamlit/secrets.toml file.")
+    st.error("⚠️ GEMINI_API_KEY is missing in your Streamlit secrets (.streamlit/secrets.toml).")
     st.stop()
 
-# ==========================================
-# 3. UTILITIES & API CALLS
-# ==========================================
+# 5. Helper Functions
 def sanitize_text(text):
     if not text:
         return ""
-    text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', str(text))
-    return text.strip()
+    return re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', str(text)).strip()
 
 def extract_file_content(uploaded_file):
     text = ""
@@ -119,67 +108,68 @@ def extract_file_content(uploaded_file):
 def safe_gemini_call(prompt, system_instruction=None, response_json=False):
     clean_prompt = sanitize_text(prompt)
     if not clean_prompt:
-        raise ValueError("Cannot process empty prompt payload.")
+        raise ValueError("Cannot send an empty prompt to Gemini.")
 
-    models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash"]
-    config_args = {"temperature": 0.2}
+    # Standard model fallbacks for Google GenAI SDK
+    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash"]
     
+    config_dict = {"temperature": 0.2}
     if system_instruction:
-        config_args["system_instruction"] = sanitize_text(system_instruction)
+        config_dict["system_instruction"] = sanitize_text(system_instruction)
     if response_json:
-        config_args["response_mime_type"] = "application/json"
+        config_dict["response_mime_type"] = "application/json"
         
-    config = types.GenerateContentConfig(**config_args)
+    config = types.GenerateContentConfig(**config_dict)
     
     last_err = None
     for model_name in models_to_try:
         try:
-            res = client.models.generate_content(
+            response = client.models.generate_content(
                 model=model_name,
                 contents=clean_prompt,
                 config=config
             )
-            return res.text
+            return response.text
         except Exception as e:
             last_err = e
             continue
             
-    raise RuntimeError(f"API Request failed across models: {last_err}")
+    raise RuntimeError(f"API Call Failed: {last_err}")
 
-# ==========================================
-# 4. APP INTERFACE
-# ==========================================
+# 6. User Interface
 st.title("🎓 Exit Ticket Studio")
 app_mode = st.sidebar.radio("Navigation", ["🎓 Student Portal", "👨‍🏫 Teacher Studio"])
 
 existing_sessions = run_query("SELECT session_key, course, period FROM sessions", fetchall=True)
-courses = list(set([s[1] for s in existing_sessions])) if existing_sessions else ["Earth Science"]
+courses = list(set([s[1] for s in existing_sessions])) if existing_sessions else ["Biology"]
 
 col_c, col_p = st.columns(2)
 with col_c:
-    selected_course = st.selectbox("📚 Select Course", options=courses)
+    selected_course = st.selectbox("📚 Course", options=courses)
 
 available_periods = [s[2] for s in existing_sessions if s[1] == selected_course]
 if not available_periods:
     available_periods = ["Period 1"]
 
 with col_p:
-    selected_period = st.selectbox("📅 Select Session / Period", options=available_periods)
+    selected_period = st.selectbox("📅 Session / Period", options=available_periods)
 
 active_session_key = f"{selected_course}::{selected_period}"
 active_session = run_query("SELECT title, questions FROM sessions WHERE session_key = ?", (active_session_key,), fetchone=True)
 
-active_title = active_session[0] if active_session else "Untitled"
+active_title = active_session[0] if active_session else "Untitled Lesson"
 active_questions = active_session[1] if active_session else ""
 
+# ------------------------------------------
 # MODE 1: STUDENT PORTAL
+# ------------------------------------------
 if app_mode == "🎓 Student Portal":
     st.subheader(f"Lesson: {active_title}")
     
     if not active_questions:
         st.info("No active exit ticket published for this session yet.")
     else:
-        student_name = st.text_input("Enter Student Name / ID:").strip().title()
+        student_name = st.text_input("Enter Student Name or ID to start:").strip().title()
         
         if student_name:
             unresolved = run_query(
@@ -190,9 +180,9 @@ if app_mode == "🎓 Student Portal":
             
             mastery_question = None
             if unresolved:
-                st.warning(f"🔄 **Mastery Revision Active:** Re-testing prior concept '{unresolved[2]}'")
+                st.warning(f"🔄 **Mastery Revision Active:** Re-testing concept from '{unresolved[1]}'")
                 try:
-                    mastery_question = safe_gemini_call(f"Create 1 review question testing: '{unresolved[2]}'")
+                    mastery_question = safe_gemini_call(f"Generate 1 short review question for a high school student testing: '{unresolved[2]}'")
                 except Exception:
                     mastery_question = None
             
@@ -210,7 +200,7 @@ if app_mode == "🎓 Student Portal":
                 
                 for idx, q_text in enumerate(base_q_list):
                     st.markdown(f"**Q{idx+1}: {q_text}**")
-                    ans = st.text_area(f"Answer Q{idx+1}:", key=f"ans_{idx}")
+                    ans = st.text_area(f"Answer for Q{idx+1}:", key=f"ans_{idx}")
                     answers.append(ans)
                     all_q.append(q_text)
                 
@@ -218,21 +208,22 @@ if app_mode == "🎓 Student Portal":
                 
                 if submit:
                     if any(not a.strip() for a in answers):
-                        st.warning("Please fill in all answers before submitting.")
+                        st.warning("Please fill out all questions before submitting.")
                     else:
                         with st.spinner("Analyzing responses..."):
                             payload = "\n".join([f"Q: {q}\nA: {a}" for q, a in zip(all_q, answers)])
                             eval_prompt = f"""
-                            Evaluate student ({student_name}) for '{active_title}'.
-                            Submission: {payload}
+                            Evaluate student ({student_name}) for lesson '{active_title}'.
+                            Submission:
+                            {payload}
 
                             Return JSON ONLY:
                             {{
                                 "score": "X/{len(all_q)}",
-                                "correct_summary": "Summary of correct answers.",
-                                "incorrect_summary": "Summary of errors.",
+                                "correct_summary": "Summary of correct work.",
+                                "incorrect_summary": "Summary of errors or missing concepts.",
                                 "revision_topics": ["Topic 1"],
-                                "teacher_question": "Question for teacher.",
+                                "teacher_question": "One targeted question for the student to ask their teacher tomorrow.",
                                 "has_misconception": false,
                                 "misconception_details": null
                             }}
@@ -248,22 +239,34 @@ if app_mode == "🎓 Student Portal":
                                     commit=True
                                 )
                                 
+                                if unresolved and not res.get("has_misconception", False):
+                                    run_query("UPDATE misconceptions SET resolved = 1 WHERE id = ?", (unresolved[0],), commit=True)
+                                
+                                if res.get("has_misconception") and res.get("misconception_details"):
+                                    run_query(
+                                        "INSERT INTO misconceptions (session_key, student_name, lesson, misconception, resolved) VALUES (?, ?, ?, ?, 0)",
+                                        (active_session_key, student_name, active_title, res.get("misconception_details")),
+                                        commit=True
+                                    )
+                                
                                 st.success(f"Score: {res.get('score')}")
                                 st.markdown(f"**✅ Strengths:** {res.get('correct_summary')}")
                                 st.markdown(f"**🔍 Areas for Growth:** {res.get('incorrect_summary')}")
-                                st.info(f"💡 **Ask teacher:** \"{res.get('teacher_question')}\"")
+                                st.info(f"💡 **Ask your teacher tomorrow:** \"{res.get('teacher_question')}\"")
                             except Exception as e:
                                 st.error(f"Evaluation failed: {e}")
 
+# ------------------------------------------
 # MODE 2: TEACHER STUDIO
+# ------------------------------------------
 else:
     st.subheader("👨‍🏫 Teacher Studio")
-    tab1, tab2 = st.tabs(["📝 Author Ticket", "📊 Analytics"])
+    tab1, tab2 = st.tabs(["📝 Author Ticket", "📊 Student Analytics"])
     
     with tab1:
         lesson_title = st.text_input("Lesson Title:", value=active_title)
-        uploaded_file = st.file_uploader("Upload Content:", type=["pdf", "docx", "txt"])
-        raw_notes = st.text_area("Or Paste Notes:")
+        uploaded_file = st.file_uploader("Upload Content File (PDF, DOCX, TXT):", type=["pdf", "docx", "txt"])
+        raw_notes = st.text_area("Or Paste Syllabus Notes / Text:")
         
         if st.button("Generate & Publish Ticket 📢"):
             combined = ""
@@ -273,10 +276,10 @@ else:
                 combined += sanitize_text(raw_notes)
                 
             if not combined.strip():
-                st.error("Please provide lesson notes.")
+                st.error("Please provide lesson notes or upload a file.")
             else:
-                with st.spinner("Generating questions..."):
-                    gen_prompt = f"Create 3 exit ticket questions based on:\n{combined[:7000]}\nFormat: 1. Q1\n2. Q2\n3. Q3"
+                with st.spinner("Generating exit ticket..."):
+                    gen_prompt = f"Create 3 exit ticket questions based on this material:\n{combined[:7000]}\nFormat exactly as:\n1. [Q1]\n2. [Q2]\n3. [Q3]"
                     try:
                         q_out = safe_gemini_call(gen_prompt)
                         run_query(
@@ -284,7 +287,7 @@ else:
                             (active_session_key, selected_course, selected_period, lesson_title, q_out),
                             commit=True
                         )
-                        st.success("Published successfully!")
+                        st.success("Exit Ticket Published Successfully!")
                         st.rerun()
                     except Exception as e:
                         st.error(f"Generation failed: {e}")
@@ -292,8 +295,14 @@ else:
     with tab2:
         subs = run_query("SELECT student_name, score, timestamp, raw_feedback FROM submissions WHERE session_key = ?", (active_session_key,), fetchall=True)
         if not subs:
-            st.info("No submissions yet.")
+            st.info("No student submissions recorded for this session yet.")
         else:
             for sname, score, ts, raw in subs:
-                with st.expander(f"👤 {sname} — {score} ({ts})"):
-                    st.text(raw)
+                with st.expander(f"👤 {sname} — Score: {score} ({ts})"):
+                    try:
+                        data = json.loads(raw)
+                        st.write(f"**Strengths:** {data.get('correct_summary')}")
+                        st.write(f"**Needs Work:** {data.get('incorrect_summary')}")
+                        st.write(f"**Teacher Question:** {data.get('teacher_question')}")
+                    except Exception:
+                        st.text(raw)
