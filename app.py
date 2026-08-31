@@ -315,6 +315,7 @@ else:
     st.error("⚠️ API Key missing in Streamlit Secrets.")
     st.stop()
 
+# Set standard stable model name
 MODEL_NAME = "gemini-2.5-flash"
 
 def parse_questions(raw_text):
@@ -420,6 +421,30 @@ def get_current_ticket():
     session_key = f"{st.session_state.active_course}::{st.session_state.active_period}"
     return session_key, db.get("session_tickets", {}).get(session_key, {"title": "No Published Ticket", "questions": ""})
 
+# Helper API runner with multi-model fallback to ensure zero client errors
+def run_gemini_generation(contents, config=None):
+    models_to_try = [MODEL_NAME, "gemini-2.0-flash", "gemini-1.5-flash"]
+    last_error = None
+    
+    for model in models_to_try:
+        try:
+            if config:
+                return client.models.generate_content(
+                    model=model,
+                    contents=contents,
+                    config=config
+                )
+            else:
+                return client.models.generate_content(
+                    model=model,
+                    contents=contents
+                )
+        except Exception as e:
+            last_error = e
+            continue
+            
+    raise last_error
+
 # ==========================================
 # VIEW 1: STUDENT PORTAL
 # ==========================================
@@ -468,8 +493,7 @@ if app_mode == "🎓 Student Portal":
                     Phrase it as a direct classroom question without referring to texts or documents.
                     Return ONLY the question text.
                     """
-                    m_res = client.models.generate_content(
-                        model=MODEL_NAME, 
+                    m_res = run_gemini_generation(
                         contents=mastery_prompt,
                         config=types.GenerateContentConfig(temperature=0.0)
                     )
@@ -542,8 +566,7 @@ if app_mode == "🎓 Student Portal":
                             }}
                             """
                             
-                            response = client.models.generate_content(
-                                model=MODEL_NAME, 
+                            response = run_gemini_generation(
                                 contents=eval_prompt,
                                 config=types.GenerateContentConfig(
                                     response_mime_type="application/json",
@@ -707,11 +730,11 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                 if st.button("Generate & Publish Ticket 📢"):
                     combined_source_text = ""
                     
-                    # 1. Safely extract file content as structured string
+                    # 1. Extract file text cleanly
                     if uploaded_file is not None:
                         combined_source_text += extract_file_content(uploaded_file) + "\n"
 
-                    # 2. Append text area notes if provided
+                    # 2. Append text area content
                     if raw_notes.strip():
                         combined_source_text += raw_notes.strip() + "\n"
 
@@ -741,8 +764,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                             3. [Question 3 - Specific Detail/Application]
                             """
 
-                            ticket_res = client.models.generate_content(
-                                model=MODEL_NAME, 
+                            ticket_res = run_gemini_generation(
                                 contents=gen_prompt,
                                 config=types.GenerateContentConfig(temperature=0.0)
                             )
@@ -807,8 +829,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                         2. Common errors or shared misconceptions identified.
                         3. Recommended follow-up activity or topic to re-teach next lesson.
                         """
-                        report_res = client.models.generate_content(
-                            model=MODEL_NAME, 
+                        report_res = run_gemini_generation(
                             contents=summary_prompt,
                             config=types.GenerateContentConfig(temperature=0.0)
                         )
