@@ -258,14 +258,24 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     width: 100% !important;
 }
 
-/* NATIVE TABS FULL-WIDTH SEGMENTED PILL STYLING */
+/* CENTERED TAB CONTAINER OVERRIDES */
+div[data-testid="stTabs"] {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
 div[data-baseweb="tab-list"] {
     background-color: rgba(118, 118, 128, 0.12) !important;
     border-radius: 14px !important;
     padding: 4px !important;
     gap: 4px !important;
     width: 100% !important;
+    max-width: 900px !important;
     display: flex !important;
+    justify-content: center !important;
+    margin: 0 auto 20px auto !important;
 }
 
 div[data-baseweb="tab-list"] button {
@@ -286,6 +296,10 @@ div[data-baseweb="tab-list"] button[aria-selected="true"] {
     color: #5856D6 !important;
     font-weight: 600 !important;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+div[data-baseweb="tab-panel"] {
+    width: 100% !important;
 }
 
 div[data-baseweb="tab-highlight-title"] { display: none !important; }
@@ -617,7 +631,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         </div>
         """, unsafe_allow_html=True)
     else:
-        # Full-width centered menu via Native Streamlit Tabs
+        # Centered Tabs using flexbox overrides
         tab1, tab2, tab3 = st.tabs(["📝 Ticket Authoring", "📊 Class Analytics & AI Insights", "🔄 Mastery Loop Registry"])
 
         # TAB 1: AUTHORING
