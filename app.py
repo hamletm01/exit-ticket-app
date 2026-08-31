@@ -707,15 +707,19 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                             \"\"\"
 
                             STRICT RULES FOR QUESTION GENERATION:
-                            1. Write 3 short-answer questions that test the core concepts, mechanisms, and definitions explicitly described in the LESSON CONTENT.
-                            2. Direct Classroom Phrasing: Phrase every question as a direct test of lesson material (e.g., "What is...", "How does...", "Describe the process of...", "According to today's lesson...").
-                            3. NO Meta-References: NEVER use terms like "provided text", "uploaded material", "explicitly named in the text", "source document", or "in paragraph X". Students are taking a quiz on what they learned today and do not have access to a text snippet during the quiz.
-                            4. Strict Context Grounding: Do NOT ask about outside facts, unmentioned chemistry/science rules, or unmentioned formulas. Only test facts present in the LESSON CONTENT.
-                            
+                            1. NO REPETITION OR OVERLAP: Each of the 3 questions MUST test a COMPLETELY DIFFERENT concept, definition, detail, or process from the lesson. Do NOT ask redundant, overlapping, or rephrased versions of the same question (e.g., do NOT ask "what is the main subject" and "what topic did we focus on").
+                            2. QUESTION DIVERSITY:
+                               - Question 1: Ask about the main definition or primary concept.
+                               - Question 2: Ask about a specific mechanism, process, stage, or relationship described.
+                               - Question 3: Ask about a specific detail, key term, or application mentioned.
+                            3. Direct Classroom Phrasing: Phrase questions naturally as direct classroom checks (e.g., "What is...", "How does...", "Describe how...").
+                            4. NO Meta-References: NEVER use terms like "provided text", "uploaded material", "explicitly named in the text", "source document", or "in paragraph X".
+                            5. Strict Context Grounding: Base questions ONLY on facts explicitly present in the LESSON CONTENT.
+
                             FORMAT OUTPUT EXACTLY AS 3 NUMBERED QUESTIONS:
-                            1. [Question 1]
-                            2. [Question 2]
-                            3. [Question 3]
+                            1. [Question 1 - Main Concept]
+                            2. [Question 2 - Specific Process/Mechanism]
+                            3. [Question 3 - Specific Detail/Application]
                             """
                             
                             ticket_res = client.models.generate_content(
