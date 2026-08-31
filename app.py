@@ -456,7 +456,8 @@ if app_mode == "🎓 Student Portal":
                     """
                     m_res = client.models.generate_content(
                         model=MODEL_NAME, 
-                        contents=mastery_prompt
+                        contents=mastery_prompt,
+                        config={"temperature": 0.0}
                     )
                     mastery_question = m_res.text.strip()
             
@@ -530,7 +531,10 @@ if app_mode == "🎓 Student Portal":
                             response = client.models.generate_content(
                                 model=MODEL_NAME, 
                                 contents=eval_prompt,
-                                config={"response_mime_type": "application/json"}
+                                config={
+                                    "response_mime_type": "application/json",
+                                    "temperature": 0.0
+                                }
                             )
                             
                             try:
@@ -634,7 +638,6 @@ elif app_mode == "👨‍🏫 Teacher Studio":
         </div>
         """, unsafe_allow_html=True)
     else:
-        # Centered Tabs using flexbox overrides
         tab1, tab2, tab3 = st.tabs(["📝 Ticket Authoring", "📊 Class Analytics & AI Insights", "🔄 Mastery Loop Registry"])
 
         # TAB 1: AUTHORING
@@ -695,25 +698,28 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                     if combined_text.strip():
                         with st.spinner("✨ Synthesizing courseware and building questions..."):
                             gen_prompt = f"""
-                            You are a secondary school teacher writing an exit ticket quiz for your students based on today's lesson material.
+                            You are a strict classroom teacher creating a comprehension quiz based ONLY on the provided text.
 
-                            LESSON SOURCE MATERIAL:
+                            SOURCE MATERIAL:
+                            \"\"\"
                             {combined_text[:4000]}
+                            \"\"\"
 
-                            INSTRUCTIONS:
-                            1. Write exactly 3 short-answer questions to test if students understand the subject concepts described in the lesson material above.
-                            2. Focus directly on the core educational concepts, definitions, and processes mentioned in the material (e.g., specific stages, science mechanisms, or key terms).
-                            3. Do NOT ask meta-questions about the text itself (e.g., do NOT ask "What is the title?", "What word is used?", or "According to the text..."). Ask direct subject-matter questions as if you were testing a student in class.
-                            4. Base all questions strictly on facts explicitly stated in the source material. Do not introduce outside concepts not mentioned in the lesson.
-                            5. Format the output ONLY as 3 numbered questions:
-                               1. [First question]
-                               2. [Second question]
-                               3. [Third question]
+                            STRICT RULES:
+                            1. Base EVERY question EXCLUSIVELY on facts explicitly stated in the SOURCE MATERIAL above.
+                            2. Do NOT use outside knowledge, general knowledge, or unmentioned facts (e.g., do NOT ask about chemical formulas like H2O or states of matter unless explicitly named in the text).
+                            3. Do NOT ask meta-questions about the document layout (e.g., "What title...", "According to paragraph 2...").
+                            4. Focus on testing comprehension of the specific concepts, definitions, and processes explicitly described in the text.
+                            5. Format as exactly 3 numbered questions:
+                               1. [Question 1]
+                               2. [Question 2]
+                               3. [Question 3]
                             """
                             
                             ticket_res = client.models.generate_content(
                                 model=MODEL_NAME, 
-                                contents=gen_prompt
+                                contents=gen_prompt,
+                                config={"temperature": 0.0}
                             )
                             
                             fresh_db = load_db()
@@ -776,7 +782,11 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                         2. Common errors or shared misconceptions identified.
                         3. Recommended follow-up activity or topic to re-teach next lesson.
                         """
-                        report_res = client.models.generate_content(model=MODEL_NAME, contents=summary_prompt)
+                        report_res = client.models.generate_content(
+                            model=MODEL_NAME, 
+                            contents=summary_prompt,
+                            config={"temperature": 0.0}
+                        )
                         st.markdown(f"""
                         <div class="ios-feedback-card">
                             <h4 style="margin: 0 0 12px 0; color: #5856D6;">🤖 AI Teaching Assistant Insights</h4>
