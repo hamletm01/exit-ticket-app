@@ -250,4 +250,4 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     color: #FFFFFF !important;
     border-radius: 12px !important;
     border: none !important;
-    padding: 12px 16px !important;
+    padding: 12px 16px !important; """
