@@ -1,5 +1,6 @@
 import streamlit as st
 from google import genai
+from google.genai import types
 import pypdf
 import docx
 import pandas as pd
@@ -314,7 +315,7 @@ else:
     st.error("⚠️ API Key missing in Streamlit Secrets.")
     st.stop()
 
-MODEL_NAME = "gemini-3.6-flash"
+MODEL_NAME = "gemini-2.5-flash"
 
 def parse_questions(raw_text):
     if not raw_text:
@@ -336,13 +337,9 @@ def parse_questions(raw_text):
         q_list.append(current_q)
     return q_list if len(q_list) > 0 else [raw_text]
 
-def extract_text(file):
+def extract_text_fallback(file):
     text = ""
-    if file.name.endswith(".pdf"):
-        reader = pypdf.PdfReader(file)
-        for page in reader.pages:
-            text += page.extract_text() or ""
-    elif file.name.endswith(".docx"):
+    if file.name.endswith(".docx"):
         doc = docx.Document(file)
         for para in doc.paragraphs:
             text += para.text + "\n"
@@ -458,7 +455,7 @@ if app_mode == "🎓 Student Portal":
                     m_res = client.models.generate_content(
                         model=MODEL_NAME, 
                         contents=mastery_prompt,
-                        config={"temperature": 0.0}
+                        config=types.GenerateContentConfig(temperature=0.0)
                     )
                     mastery_question = m_res.text.strip()
             
@@ -532,10 +529,10 @@ if app_mode == "🎓 Student Portal":
                             response = client.models.generate_content(
                                 model=MODEL_NAME, 
                                 contents=eval_prompt,
-                                config={
-                                    "response_mime_type": "application/json",
-                                    "temperature": 0.0
-                                }
+                                config=types.GenerateContentConfig(
+                                    response_mime_type="application/json",
+                                    temperature=0.0
+                                )
                             )
                             
                             try:
@@ -690,47 +687,71 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                 raw_notes = st.text_area("Or Paste Syllabus Notes / Outline:", height=110, placeholder="Paste lesson objectives, key facts, or syllabus points...")
                 
                 if st.button("Generate & Publish Ticket 📢"):
-                    combined_text = ""
-                    if uploaded_file:
-                        combined_text += extract_text(uploaded_file)
-                    if raw_notes:
-                        combined_text += "\n" + raw_notes
-                        
-                    if combined_text.strip():
-                        with st.spinner("✨ Synthesizing courseware and building questions..."):
-                            gen_prompt = f"""
-                            You are a classroom teacher creating an exit ticket quiz for your students based ONLY on today's lesson content below.
+                    contents_payload = []
+                    
+                    if uploaded_file or raw_notes.strip():
+                        with st.spinner("✨ Processing document with Gemini vision & authoring ticket..."):
+                            # 1. Direct Multimodal Attachment (PDFs passed directly as byte streams)
+                            if uploaded_file is not None:
+                                file_bytes = uploaded_file.getvalue()
+                                mime_type = uploaded_file.type
+                                
+                                # Infer MIME type fallback if missing
+                                if not mime_type:
+                                    if uploaded_file.name.endswith(".pdf"):
+                                        mime_type = "application/pdf"
+                                    elif uploaded_file.name.endswith(".txt"):
+                                        mime_type = "text/plain"
+                                    else:
+                                        mime_type = "application/octet-stream"
 
-                            LESSON CONTENT:
-                            \"\"\"
-                            {combined_text[:4000]}
-                            \"\"\"
+                                if mime_type == "application/pdf":
+                                    contents_payload.append(
+                                        types.Part.from_bytes(
+                                            data=file_bytes,
+                                            mime_type="application/pdf"
+                                        )
+                                    )
+                                else:
+                                    # Fallback text extraction for docx/txt
+                                    txt = extract_text_fallback(uploaded_file)
+                                    if txt:
+                                        contents_payload.append(f"Document Text:\n{txt}")
+
+                            # 2. Add teacher notes if provided
+                            if raw_notes.strip():
+                                contents_payload.append(f"Additional Lesson Notes:\n{raw_notes.strip()}")
+
+                            # 3. Add explicit prompt enforcing focus on primary educational content
+                            gen_prompt = """
+                            You are a classroom teacher creating an exit ticket quiz for your students based ONLY on the primary educational content in the attached document/notes.
 
                             STRICT RULES FOR QUESTION GENERATION:
-                            1. NO REPETITION OR OVERLAP: Each of the 3 questions MUST test a COMPLETELY DIFFERENT concept, definition, detail, or process from the lesson. Do NOT ask redundant, overlapping, or rephrased versions of the same question (e.g., do NOT ask "what is the main subject" and "what topic did we focus on").
-                            2. QUESTION DIVERSITY:
-                               - Question 1: Ask about the main definition or primary concept.
+                            1. IGNORE METADATA & FORM ARTIFACTS: Completely ignore document headers, page numbers, form fields, sequence tags, PINs, or internal PDF structures.
+                            2. NO REPETITION OR OVERLAP: Each of the 3 questions MUST test a COMPLETELY DIFFERENT concept, definition, detail, or process from the lesson content body.
+                            3. QUESTION DIVERSITY:
+                               - Question 1: Ask about the main definition or primary concept presented.
                                - Question 2: Ask about a specific mechanism, process, stage, or relationship described.
-                               - Question 3: Ask about a specific detail, key term, or application mentioned.
-                            3. Direct Classroom Phrasing: Phrase questions naturally as direct classroom checks (e.g., "What is...", "How does...", "Describe how...").
-                            4. NO Meta-References: NEVER use terms like "provided text", "uploaded material", "explicitly named in the text", "source document", or "in paragraph X".
-                            5. Strict Context Grounding: Base questions ONLY on facts explicitly present in the LESSON CONTENT.
+                               - Question 3: Ask about a specific detail, key term, diagram label, or real-world application mentioned.
+                            4. Direct Classroom Phrasing: Phrase questions naturally as direct classroom checks (e.g., "What is...", "How does...", "Describe how...").
+                            5. NO Meta-References: NEVER refer to "the attached document", "the text", or "source file".
 
                             FORMAT OUTPUT EXACTLY AS 3 NUMBERED QUESTIONS:
                             1. [Question 1 - Main Concept]
                             2. [Question 2 - Specific Process/Mechanism]
                             3. [Question 3 - Specific Detail/Application]
                             """
-                            
+                            contents_payload.append(gen_prompt)
+
                             ticket_res = client.models.generate_content(
                                 model=MODEL_NAME, 
-                                contents=gen_prompt,
-                                config={"temperature": 0.0}
+                                contents=contents_payload,
+                                config=types.GenerateContentConfig(temperature=0.0)
                             )
                             
                             fresh_db = load_db()
                             fresh_db["session_tickets"][session_key] = {
-                                "title": lesson_title if lesson_title else "Unit Check-in",
+                                "title": lesson_title.strip() if lesson_title.strip() else "Unit Check-in",
                                 "questions": ticket_res.text
                             }
                             save_db(fresh_db)
@@ -791,7 +812,7 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                         report_res = client.models.generate_content(
                             model=MODEL_NAME, 
                             contents=summary_prompt,
-                            config={"temperature": 0.0}
+                            config=types.GenerateContentConfig(temperature=0.0)
                         )
                         st.markdown(f"""
                         <div class="ios-feedback-card">
