@@ -729,67 +729,79 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                             st.success(f"Exit Ticket Published Globally for {session_key}!")
                             st.rerun()
                     else:
-                        st.warning("⚠️ Please upload a file or paste syllabus notes before generating.")
+                        st.error("Please upload a file or paste lesson notes to generate a ticket.")
 
             with col_right:
-                st.markdown("<span class='ios-badge ios-badge-purple'>LIVE PREVIEW</span>", unsafe_allow_html=True)
-                st.markdown(f"### Active Ticket Preview ({st.session_state.active_period})")
-                if curr_ticket.get('questions'):
-                    st.markdown(f"**Topic:** {curr_ticket.get('title')}")
-                    q_list = parse_questions(curr_ticket.get('questions'))
-                    for idx, q in enumerate(q_list):
-                        st.markdown(f"""
-                        <div class="ios-single-qbox">
-                            <span style="color: #007AFF; font-weight: 700;">Q{idx+1}:</span> {q}
-                        </div>
-                        """, unsafe_allow_html=True)
-                else:
-                    st.info("No active ticket published yet for this section.")
-
-        # TAB 2: ANALYTICS
-        elif selected_tab == "📊 Class Analytics & AI Insights":
-            st.markdown("<span class='ios-badge ios-badge-blue'>REAL-TIME DATA</span>", unsafe_allow_html=True)
-            st.markdown(f"### Student Submissions for {st.session_state.active_period}")
-            
-            results = db.get("student_results", {}).get(session_key, [])
-            if results:
-                df = pd.DataFrame(results)
-                st.dataframe(df[["Timestamp", "Student ID", "Score", "Misconception Summary"]], use_container_width=True)
+                st.markdown("<span class='ios-badge ios-badge-purple'>ACTIVE TICKET PREVIEW</span>", unsafe_allow_html=True)
+                st.markdown(f"### Currently Active: {curr_ticket.get('title', 'None')}")
                 
-                if st.button("Generate Class Misconception Summary 🤖"):
-                    with st.spinner("Analyzing overall class performance..."):
+                if curr_ticket.get("questions"):
+                    st.text_area(
+                        "Questions Published to Students:",
+                        value=curr_ticket["questions"],
+                        height=220,
+                        key="active_q_preview",
+                        disabled=True
+                    )
+                else:
+                    st.info("No active exit ticket published for this session yet.")
+
+        # TAB 2: CLASS ANALYTICS & AI INSIGHTS
+        elif selected_tab == "📊 Class Analytics & AI Insights":
+            st.markdown("<span class='ios-badge ios-badge-purple'>SESSION PERFORMANCE</span>", unsafe_allow_html=True)
+            st.markdown(f"### Live Results for {st.session_state.active_course} — {st.session_state.active_period}")
+
+            session_results = db.get("student_results", {}).get(session_key, [])
+
+            if not session_results:
+                st.info("No student responses submitted for this period yet.")
+            else:
+                df = pd.DataFrame(session_results)
+                
+                m1, m2 = st.columns(2)
+                with m1:
+                    st.metric("Total Submissions", len(df))
+                with m2:
+                    st.metric("Active Topic", curr_ticket.get("title", "N/A"))
+
+                st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
+                st.dataframe(df[["Timestamp", "Student ID", "Score", "Misconception Summary"]], use_container_width=True)
+                st.markdown("<div class='ios-spacer'></div>", unsafe_allow_html=True)
+                
+                if st.button("Generate AI Class Misconception Report 🤖"):
+                    with st.spinner("Analyzing class submission trends..."):
                         summary_prompt = f"""
-                        Analyze these student exit ticket outcomes for section '{session_key}':
-                        {json.dumps(results)}
-                        
-                        Summarize overall class understanding, key recurring misconceptions, and suggest 2 targeted instructional actions for tomorrow's lesson.
+                        Analyze these student exit ticket summaries for the class period '{st.session_state.active_period}':
+                        {df[['Student ID', 'Score', 'Misconception Summary']].to_json(orient='records')}
+
+                        Provide a short, 3-bullet-point summary for the teacher:
+                        1. Overall class understanding level.
+                        2. Common errors or shared misconceptions identified.
+                        3. Recommended follow-up activity or topic to re-teach next lesson.
                         """
-                        ai_summary = client.models.generate_content(model=MODEL_NAME, contents=summary_prompt)
+                        report_res = client.models.generate_content(model=MODEL_NAME, contents=summary_prompt)
                         st.markdown(f"""
                         <div class="ios-feedback-card">
-                            <h4>🤖 AI Class Diagnostic Summary</h4>
-                            <p>{ai_summary.text}</p>
+                            <h4 style="margin: 0 0 12px 0; color: #5856D6;">🤖 AI Teaching Assistant Insights</h4>
+                            {report_res.text}
                         </div>
                         """, unsafe_allow_html=True)
-            else:
-                st.info("No student responses logged yet for this period.")
 
-        # TAB 3: MASTERY REGISTRY
+        # TAB 3: MASTERY LOOP REGISTRY
         elif selected_tab == "🔄 Mastery Loop Registry":
-            st.markdown("<span class='ios-badge ios-badge-orange'>MASTERY TRACKING</span>", unsafe_allow_html=True)
+            st.markdown("<span class='ios-badge ios-badge-orange'>REVISION TRACKER</span>", unsafe_allow_html=True)
             st.markdown(f"### Active Student Misconceptions ({st.session_state.active_period})")
-            
-            misconceptions = db.get("student_misconceptions", {}).get(session_key, {})
-            if misconceptions:
-                records = []
-                for student, gaps in misconceptions.items():
-                    for gap in gaps:
-                        records.append({
-                            "Student": student,
-                            "Lesson": gap.get("lesson"),
-                            "Misconception": gap.get("misconception"),
-                            "Status": "✅ Resolved" if gap.get("resolved") else "⚠️ Pending Review"
-                        })
-                st.dataframe(pd.DataFrame(records), use_container_width=True)
+
+            all_gaps = db.get("student_misconceptions", {}).get(session_key, {})
+
+            if not all_gaps:
+                st.info("No active misconceptions logged for this session.")
             else:
-                st.info("No misconceptions tracked for this period.")
+                for student, gaps in all_gaps.items():
+                    with st.expander(f"👤 {student} ({len([g for g in gaps if not g.get('resolved')])} unresolved)"):
+                        for idx, gap in enumerate(gaps):
+                            status_badge = "✅ Resolved" if gap.get("resolved") else "🚨 Unresolved (Active in next ticket)"
+                            st.write(f"**Lesson:** {gap.get('lesson')}")
+                            st.write(f"**Identified Error:** {gap.get('misconception')}")
+                            st.write(f"**Status:** {status_badge}")
+                            st.divider()
