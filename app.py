@@ -105,7 +105,6 @@ html, body, [class*="css"] {
 header[data-testid="stHeader"] { background: transparent !important; }
 footer { visibility: hidden; }
 
-/* Uniform Vertical Spacing Helper */
 .ios-spacer {
     height: 16px;
     width: 100%;
@@ -119,7 +118,6 @@ section[data-testid="stSidebar"] {
     padding-top: 1rem !important;
 }
 
-/* Sidebar Radio Buttons */
 div[data-testid="stRadio"] > div {
     background: rgba(120, 120, 128, 0.12) !important;
     border-radius: 12px !important;
@@ -148,7 +146,6 @@ div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
 
 div[data-testid="stRadio"] input[type="radio"] { display: none !important; }
 
-/* Hero Containers */
 .ios-hero-student {
     background: linear-gradient(135deg, #007AFF 0%, #0051A8 100%);
     border-radius: 22px;
@@ -259,7 +256,6 @@ section[data-testid="stMain"] div[data-testid="stColumn"] > div, .ios-card-conta
     width: 100% !important;
 }
 
-/* CENTERED TAB CONTAINER OVERRIDES */
 div[data-testid="stTabs"] {
     display: flex !important;
     flex-direction: column !important;
@@ -315,8 +311,19 @@ else:
     st.error("⚠️ API Key missing in Streamlit Secrets.")
     st.stop()
 
-# Set standard stable model name
-MODEL_NAME = "gemini-2.5-flash"
+# Standardized Valid Model Names
+PRIMARY_MODEL = "gemini-2.0-flash"
+FALLBACK_MODELS = ["gemini-1.5-flash", "gemini-1.5-pro"]
+
+def sanitize_text(text):
+    """Sanitizes raw text to prevent API payload parsing errors."""
+    if not text:
+        return ""
+    # Strip null bytes and illegal control characters
+    text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', str(text))
+    # Replace curly braces to prevent format string issues
+    text = text.replace('{', '(').replace('}', ')')
+    return text.strip()
 
 def parse_questions(raw_text):
     if not raw_text:
@@ -360,9 +367,7 @@ def extract_file_content(file):
         except Exception as e:
             st.error(f"Error reading Text file: {e}")
             
-    # Clean out structural line noise
-    clean_text = re.sub(r'[\r\t]', ' ', text)
-    return clean_text
+    return sanitize_text(text)
 
 # ==========================================
 # SIDEBAR: SYSTEM & ACCESS CONTROL ONLY
@@ -395,7 +400,6 @@ with st.sidebar:
                 st.session_state.teacher_authenticated = False
                 st.rerun()
 
-# Helper function to render Course/Period dropdowns
 def render_scope_selectors():
     c_sel_1, c_sel_2 = st.columns(2, gap="large")
     with c_sel_1:
@@ -421,14 +425,18 @@ def get_current_ticket():
     session_key = f"{st.session_state.active_course}::{st.session_state.active_period}"
     return session_key, db.get("session_tickets", {}).get(session_key, {"title": "No Published Ticket", "questions": ""})
 
-# Helper API runner with multi-model fallback to ensure zero client errors
+# Safe content execution with strict model fallback
 def run_gemini_generation(contents, config=None):
-    models_to_try = [MODEL_NAME, "gemini-2.0-flash", "gemini-1.5-flash"]
+    clean_contents = sanitize_text(contents)
+    if not clean_contents:
+        raise ValueError("Cannot process an empty or invalid content request.")
+
+    models_to_try = [PRIMARY_MODEL] + FALLBACK_MODELS
     last_error = None
     
     for model in models_to_try:
         try:
-            kwargs = {"model": model, "contents": contents}
+            kwargs = {"model": model, "contents": clean_contents}
             if config is not None:
                 kwargs["config"] = config
             return client.models.generate_content(**kwargs)
@@ -570,7 +578,7 @@ if app_mode == "🎓 Student Portal":
                             
                             try:
                                 result_json = json.loads(response.text)
-                            except:
+                            except Exception:
                                 result_json = {
                                     "score": f"?/{len(all_questions)}",
                                     "correct_aspects": "Great effort completing the exit ticket!",
@@ -724,13 +732,11 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                 if st.button("Generate & Publish Ticket 📢"):
                     combined_source_text = ""
                     
-                    # 1. Extract file text cleanly
                     if uploaded_file is not None:
                         combined_source_text += extract_file_content(uploaded_file) + "\n"
 
-                    # 2. Append text area content
                     if raw_notes.strip():
-                        combined_source_text += raw_notes.strip() + "\n"
+                        combined_source_text += sanitize_text(raw_notes) + "\n"
 
                     if combined_source_text.strip():
                         with st.spinner("✨ Synthesizing document and generating quiz questions..."):
@@ -740,13 +746,11 @@ elif app_mode == "👨‍🏫 Teacher Studio":
                                 "Never mention 'the document', 'the text', or form numbers."
                             )
                             
-                            cleaned_source = combined_source_text[:10000].replace("{", "(").replace("}", ")")
+                            cleaned_source = combined_source_text[:8000]
                             
                             gen_prompt = f"""
                             LESSON CONTENT:
-                            \"\"\"
                             {cleaned_source}
-                            \"\"\"
 
                             STRICT RULES FOR QUESTION GENERATION:
                             1. IGNORE METADATA & FORM ARTIFACTS: Completely ignore document headers, page numbers, sequence tags, form IDs, or internal PDF metadata.
